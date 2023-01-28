@@ -27,10 +27,11 @@ class PointNet (nn.Module):
         self.conv5 = self.conv2D(128, 1024, [1, 1], bn=True, name='conv5')
 
 
-        self.fc1 = self.fully_connected(1024, 512, bn=True, name='fc1')
-        self.fc2 = self.fully_connected(512, 256, bn=True, name='fc2')
-        self.fc3 = self.fully_connected(256, self.num_classes, activation_fn=None, name='fc3')
-        
+        self.fc1 = self.fully_connected(1024, 512, bn=False, name='fc1')
+        self.fc2 = self.fully_connected(512, 256, bn=False, name='fc2')
+        self.dropout = nn.Dropout(p=0.6)
+        self.fc3 = self.fully_connected(256, self.num_classes, activation_fn=None, bn=False, name='fc3')
+
 
     def conv2D(self, 
             num_in_channels,
@@ -94,104 +95,24 @@ class PointNet (nn.Module):
 
         # unsqueeze to add channel dimension
         x = torch.unsqueeze(x, dim=1)# batch_size x 1 x num_points x 3 the second dimension is the channel dimension
-        if verbose: print ('0: input: ', x.shape)
 
-        # Point functions (MLP implemented as conv2d)
-        x = self.conv2D(num_in_channels=num_in_channels, 
-                    num_output_channels=64,
-                    kernel_size=[1, 3],
-                    padding='valid',
-                    # stride=[1, 1],
-                    activation_fn=nn.ReLU(),
-                    bn=True, name = 'conv1')(x)
+        x = self.conv1(x)
+        x = self.conv2(x)
+        x = self.conv3(x)
+        x = self.conv4(x)
+        x = self.conv5(x)
 
-        if verbose: print ('1: conv2D: ', x.shape)
-
-        num_in_channels = x.shape[1] # number of input channels
-        x = self.conv2D( 
-                    num_in_channels=num_in_channels, 
-                    num_output_channels=64,
-                    kernel_size=[1, 1],
-                    padding='valid',
-                    stride=[1, 1],
-                    activation_fn=nn.ReLU(),
-                    bn=True, name = 'conv2')(x)
-
-        num_in_channels = x.shape[1]
-        x = self.conv2D(
-                    num_in_channels=num_in_channels, 
-                    num_output_channels=64,
-                    kernel_size=[1, 1],
-                    padding='valid',
-                    stride=[1, 1],
-                    activation_fn=nn.ReLU(),
-                    bn=True, name = 'conv3')(x)
-
-        if verbose: print ('2: conv2D: ', x.shape)
-
-        num_in_channels = x.shape[1]
-        x = self.conv2D(
-                    num_in_channels=num_in_channels, 
-                    num_output_channels=128,
-                    kernel_size=[1, 1],
-                    padding='valid',
-                    stride=[1, 1],
-                    activation_fn=nn.ReLU(),
-                    bn=True, name = 'conv4')(x)
-
-        # print ('3: conv2D: ', x.shape)
-
-        num_in_channels = x.shape[1]
-        x = self.conv2D(
-                    num_in_channels=num_in_channels, 
-                    num_output_channels=1024,
-                    kernel_size=[1, 1],
-                    padding='valid',
-                    stride=[1, 1],
-                    activation_fn=nn.ReLU(),
-                    bn=True, name = 'conv5')(x)
-        
-        if verbose: print ('4: conv2D: ', x.shape)
-
+    
         # Symmetric function: max pooling
         x = nn.MaxPool2d(kernel_size=[num_point, 1], padding=0)(x)
 
-        if verbose: print ('5: MaxPool2d: ', x.shape)
-    
-        #reshape
-        x = torch.reshape(x, [batch_size, -1]) # batch_size x 1024
-        # fully connected layer
-        if verbose: print ('6: reshape: ', x.shape)
-
-        input_size = x.shape[1]
-        x = self.fully_connected(
-                    input_size=input_size,
-                    output_size=512,
-                    activation_fn=nn.ReLU(),
-                    bn=False, name = 'fc1')(x)
-        if verbose: print ('7: fc1: ', x.shape)
-
-        # fully connected layer
-        input_size = x.shape[1]
-        x = self.fully_connected(
-                    input_size=input_size,
-                    output_size=256,
-                    activation_fn=nn.ReLU(),
-                    bn=False, name = 'fc2')(x)
-        if verbose: print ('8: fc2: ', x.shape)
-        
+        # FC layers
+        x = torch.reshape(x, [batch_size, -1])
+        x = self.fc1(x)
+        x = self.fc2(x)
         # dropout
-        x = nn.Dropout(0.7)(x)
-        if verbose: print ('9: dropout: ', x.shape)
-
-        # fully connected layer
-        input_size = x.shape[1]
-        x = self.fully_connected(
-                    input_size=input_size,
-                    output_size=self.num_classes,
-                    activation_fn=nn.Softmax(dim=1),
-                    bn=False, name = 'fc3')(x)
-        if verbose: print ('10: fc3: ', x.shape)
+        x = self.dropout(x)
+        x = self.fc3(x)
 
         return x
 
@@ -220,6 +141,14 @@ if __name__ == '__main__':
     print (x.shape)
 
     model = PointNet(nclasses=40).float()
+
+    # print parameters
+    for name, param in model.named_parameters():
+        print (name, param.shape)
+
+    # print net
+    print (model)
+
     output = model(x)
     print(output)
 
