@@ -13,7 +13,7 @@ import pandas as pd
 from sklearn.metrics import  recall_score, precision_score, f1_score, accuracy_score
 
 from dataset.PointCloudDataset import PointCloudDataset
-from dataset.voxelDataset import VoxelDataset
+from dataset.voxelDataset_old import VoxelDataset
 
 from networks.PointNet import PointNet
 from networks.voxnet import VoxNet
