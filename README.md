@@ -13,7 +13,14 @@ Example of the dataset:
 </p>
 
 ### Binvox [3][4]
-Voxels 
+Voxels indices are listed in the ModelNet40 as .off files, in order to process voxels as 3D volumes we apply a binvox[3] conversion.
+The binvox conversion is done using the following command:
+```
+cd binvox_utils
+chmod +x binvox
+python3.9 off2binvox.py
+```
+Note that the binary file binvox in the binvox_utils folder is compiled for OSX, if you are using a different OS you need to compile it from the source code, available [here](https://www.patrickmin.com/binvox/).
 
 ## Architectures
 
