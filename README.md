@@ -6,7 +6,7 @@ Example of the dataset:
 
 <p align="float">
   <img src="imgs/meshes/plant.png" width="100" title="Task">
-  <img src="imgs/meshes/bottle.png" width="100" title="Task">
+  <img src="imgs/meshes/bottle.png" width="80" title="Task">
     <img src="imgs/meshes/car_2.png" width="150" title="Task">
   <img src="imgs/meshes/stairs.png" width="150" title="Task">
 
