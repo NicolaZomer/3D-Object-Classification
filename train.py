@@ -338,16 +338,12 @@ def main (
         input_shape = (32, 32, 32)
         dataset_train  = VoxelDataset('dataset/ModelNet40', 
                                         train=True, 
-                                        ndata=ndata, 
-                                        file_extension='.off', 
-                                        )
+                                    )
         if train: test_data = int(ndata/20)
         else: test_data = -1
         dataset_val    = PointCloudDataset('dataset/ModelNet40', 
                                             train=False, 
-                                            ndata=test_data,
-                                            file_extension='.off', 
-                                        )
+                                          )
 
         print (f"Train dataset size: {len(dataset_train)}")
         print (f"Val dataset size: {len(dataset_val)}")
@@ -361,8 +357,6 @@ def main (
         Net = VoxNet(input_shape=input_shape, nclasses=40)
     else:
         raise ValueError(f"Model {model_name} not implemented")
-
-
 
     # load model if exists
     models_saved = glob.glob(os.path.join(save_dir, 'model_*.torch'))

@@ -50,7 +50,23 @@ class VoxNet(nn.Module):
 
 
 if __name__ == "__main__":
-    voxnet = VoxNet((32, 32, 32))
-    data = torch.rand([256, 1, 32, 32, 32])
+    import sys
+    sys.path.append('..')
+    from dataset.voxelDataset import VoxelDataset
+
+    data_root = '../dataset/ModelNet40'
+    dataset = VoxelDataset(data_root, Train=True)
+    data = dataset[0][0]
+    print (data.shape)
+    # unsqueeze to add batch dimension
+    data = data.unsqueeze(0)
+
+    voxnet = VoxNet(input_shape=(32, 32, 32))
     a = voxnet(data)
     print(a)
+
+    # use loss function
+    criterion = nn.CrossEntropyLoss()
+    target = torch.LongTensor([1])
+    loss = criterion(a, target)
+    print(loss)
