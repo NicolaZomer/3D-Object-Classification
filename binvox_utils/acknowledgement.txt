@@ -1,0 +1,12 @@
+binvox parsing taken from https://github.com/MonteYang/VoxNet.pytorch
+
+We modified some files in order to make it compatible with our dataset
+
+# network architecture  citation
+@inproceedings{maturana_iros_2015,
+    author = "Maturana, D. and Scherer, S.",
+    title = "{VoxNet: A 3D Convolutional Neural Network for Real-Time Object Recognition}",
+    booktitle = "{IROS}",
+    year = "2015",
+    pdf = "/extra/voxnet_maturana_scherer_iros15.pdf",
+}
