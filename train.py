@@ -19,7 +19,7 @@ from classifier import Classifier
 
 from networks.PointNet import PointNet
 from networks.voxnet import VoxNet
-
+from networks.res_voxnet import ResVoxNet
 
 
 import argparse
@@ -28,8 +28,8 @@ import os
 # 4000 dati allenati con batch 64 e 1e-3
 
 parser = argparse.ArgumentParser(description='training')
-parser.add_argument('--model_name', type=str, default='voxnet', help='model name (default: pointnet)', choices=['pointnet', 'voxnet'])
-parser.add_argument('--epochs', type=int, default=20, help='number of epochs to train (default: 10)')
+parser.add_argument('--model_name', type=str, default='res_voxnet', help='model name (default: pointnet)', choices=['pointnet', 'voxnet', 'res_voxnet'])
+parser.add_argument('--epochs', type=int, default=40, help='number of epochs to train (default: 10)')
 parser.add_argument('--lr', type=float, default=1e-3, help='learning rate (default: 0.001)')
 parser.add_argument('--batch_size', type=int, default=64, help='batch size (default: 32)')
 parser.add_argument('--save_dir', type=str, default='checkpoints', help='directory to save checkpoints (default: checkpoints/pointnet)')
@@ -103,27 +103,31 @@ def main (
         # print number of elments in loader
 
         Net = VoxNet(input_shape=input_shape, nclasses=40)
+        parameters = Net.parameters()    
+
+        optimizer = optim.Adam(parameters, lr=1e-3, weight_decay=1e-5)
+
+    elif model_name == 'res_voxnet':
+        input_shape = (32, 32, 32)
+        dataset_train  = VoxelDataset('dataset/ModelNet40', 
+                                        train=True,)
+        dataset_val    = VoxelDataset('dataset/ModelNet40', train=False)
+
+        print (f"Train dataset size: {len(dataset_train)}")
+        print (f"Val dataset size: {len(dataset_val)}")
+
+        dataloader_train = DataLoader(dataset_train, batch_size=batch_size, shuffle=True, num_workers=4)
+        dataloader_val = DataLoader(dataset_val, batch_size=32, shuffle=True)
+
+
+        Net = ResVoxNet(input_shape=input_shape, nclasses=40)
         parameters = Net.parameters()
-        
-        # load model if exists
-        models_saved = glob.glob(os.path.join(save_dir, 'model_*.torch'))
-        if len(models_saved) > 0:
-            # get most recent model
-            epoches_done = max([int(model.split('_')[-1].split('.')[0]) for model in models_saved])
-            model_path = os.path.join(save_dir, f'model_{epoches_done}.torch')
-            print(f"Loading model from {model_path}")
-            Net.load_state_dict(torch.load(model_path))
-        else:
-            epoches_done = 0
-
-        if epoches_done <= 40: # but actually 30 would be better
-            optimizer = optim.Adam(parameters, lr=1e-3, weight_decay=1e-5)
-        else:
-            optimizer = optim.Adagrad(parameters, lr=1e-4, weight_decay=1e-5)
-
+    
+        optimizer = optim.Adam(parameters, lr=1e-4, weight_decay=1e-5, amsgrad=True)
 
     else:
         raise ValueError(f"Model {model_name} not implemented")
+
 
     # load model if exists
     models_saved = glob.glob(os.path.join(save_dir, 'model_*.torch'))
