@@ -13,7 +13,7 @@ import pandas as pd
 from sklearn.metrics import  recall_score, precision_score, f1_score, accuracy_score
 
 from dataset.PointCloudDataset import PointCloudDataset
-from dataset.voxelDataset_old import VoxelDataset
+from dataset.voxelDataset import VoxelDataset
 
 from networks.PointNet import PointNet
 from networks.voxnet import VoxNet
@@ -33,14 +33,11 @@ class Classifier ():
             val_dataloader, 
             loss_fn, 
             epochs, 
-            lr=1e-3, 
-            weight_decay=1e-5,
+            optimizer,
             save_dir='checkpoints', 
             start_epoch=0
             ):
-        parameters = self.Net.parameters()
-        # self.optimizer =  optim.Adam(parameters, lr=lr, weight_decay=weight_decay)
-        self.optimizer =  optim.SGD(parameters, lr=lr, weight_decay=weight_decay)
+        self.optimizer = optimizer
         self.loss_fn = loss_fn
 
         self.train_loss_log = []
@@ -281,11 +278,11 @@ import os
 
 parser = argparse.ArgumentParser(description='training')
 parser.add_argument('--model_name', type=str, default='voxnet', help='model name (default: pointnet)', choices=['pointnet', 'voxnet'])
-parser.add_argument('--epochs', type=int, default=10, help='number of epochs to train (default: 10)')
+parser.add_argument('--epochs', type=int, default=20, help='number of epochs to train (default: 10)')
 parser.add_argument('--lr', type=float, default=1e-3, help='learning rate (default: 0.001)')
 parser.add_argument('--batch_size', type=int, default=64, help='batch size (default: 32)')
 parser.add_argument('--save_dir', type=str, default='checkpoints', help='directory to save checkpoints (default: checkpoints/pointnet)')
-parser.add_argument('--ndata', type=int, default=100, help='number of data points to use (default: 2000)')
+parser.add_argument('--ndata', type=int, default=4000, help='number of data points to use (default: 2000)')
 parser.add_argument('--npoints', type=int, default=2000, help='number of points in the point cloud (default: 1024)')
 parser.add_argument('--train', type=bool, default=True, help='train or test (default: True)')
 args = parser.parse_args()
@@ -332,6 +329,8 @@ def main (
         dataloader_val = DataLoader(dataset_val, batch_size=32, shuffle=True)
 
         Net = PointNet(nclasses=40)
+        parameters = Net.parameters()
+        optimizer =  optim.SGD(parameters, lr=lr, weight_decay=1e-5)
 
 
     elif model_name == 'voxnet':
@@ -339,9 +338,7 @@ def main (
         dataset_train  = VoxelDataset('dataset/ModelNet40', 
                                         train=True, 
                                     )
-        if train: test_data = int(ndata/20)
-        else: test_data = -1
-        dataset_val    = PointCloudDataset('dataset/ModelNet40', 
+        dataset_val    = VoxelDataset('dataset/ModelNet40', 
                                             train=False, 
                                           )
 
@@ -351,10 +348,14 @@ def main (
         dataloader_train = DataLoader(dataset_train, batch_size=batch_size, shuffle=True, num_workers=4)
         dataloader_val = DataLoader(dataset_val, batch_size=32, shuffle=True)
 
-        print (f"first element in loader: {next(iter(dataloader_train))}")
+        # print (f"first element in loader: {next(iter(dataloader_train))}")
         # print number of elments in loader
 
         Net = VoxNet(input_shape=input_shape, nclasses=40)
+        parameters = Net.parameters()
+        # optimizer = optim.SGD(parameters, lr=5e-3, momentum=0.9)
+        optimizer = optim.Adam(parameters, lr=1e-3, weight_decay=1e-5)
+
     else:
         raise ValueError(f"Model {model_name} not implemented")
 
@@ -377,7 +378,7 @@ def main (
 
     if train:
         print ("Starting training")
-        classifier.train(dataloader_train, dataloader_val, epochs=epochs, lr=lr, loss_fn=loss_fn, save_dir=save_dir, start_epoch=epoches_done+1)
+        classifier.train(dataloader_train, dataloader_val, epochs=epochs, optimizer=optimizer, loss_fn=loss_fn, save_dir=save_dir, start_epoch=epoches_done+1)
         print ("Training done")
     else:
         print ("Starting testing")
