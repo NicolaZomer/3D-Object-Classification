@@ -35,7 +35,7 @@ parser.add_argument('--batch_size', type=int, default=64, help='batch size (defa
 parser.add_argument('--save_dir', type=str, default='checkpoints', help='directory to save checkpoints (default: checkpoints/pointnet)')
 parser.add_argument('--ndata', type=int, default=4000, help='number of data points to use (default: 2000)')
 parser.add_argument('--npoints', type=int, default=2000, help='number of points in the point cloud (default: 1024)')
-parser.add_argument('--train', type=bool, default=True, help='train or test (default: True)')
+parser.add_argument('--train', type=bool, default=False, help='train or test (default: True)')
 args = parser.parse_args()
 
 
@@ -81,7 +81,7 @@ def main (
 
         Net = PointNet(nclasses=40)
         parameters = Net.parameters()
-        optimizer =  optim.SGD(parameters, lr=lr, weight_decay=1e-5)
+        optimizer =  optim.Adam(parameters, lr=5e-4, weight_decay=1e-5)
 
 
     elif model_name == 'voxnet':
