@@ -132,8 +132,12 @@ class voxAutoEncoder (nn.Module):
 
     def forward(self, x):
         x = self.encoder(x)
-        x = self.decoder(x)
-        return x
+        encoded = x
+        decoded = self.decoder(x)
+        return decoded, encoded
+    
+    def encode(self, x):
+        return self.encoder(x)
 
 
 if __name__ == '__main__':

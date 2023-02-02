@@ -27,7 +27,7 @@ def train_one_epoch(train_loader, model, optimizer, loss_fn):
         ref_cloud = ref_cloud[0] # the second element in the list is the label, but we dont need it now 
         ref_cloud = ref_cloud.to(DEVICE)
         optimizer.zero_grad()
-        decoded = model(ref_cloud)
+        decoded, encoded = model(ref_cloud)
         # get_loss is a function of net
         loss = loss_fn(ref_cloud, decoded)
         # loss = model.get_loss(ref_cloud, decoded)
@@ -47,7 +47,7 @@ def test_one_epoch(test_loader, model, loss_fn):
             ref_cloud = ref_cloud[0]
             ref_cloud = ref_cloud.to(DEVICE)
 
-            decoded = model(ref_cloud)
+            decoded, encoded = model(ref_cloud)
             loss = loss_fn(ref_cloud, decoded)
             # loss = model.get_loss(ref_cloud, decoded)
             losses.append(loss.item())
@@ -58,7 +58,7 @@ def test_one_epoch(test_loader, model, loss_fn):
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--batch_size', type=int, default=32)
-parser.add_argument('--epochs', type=int, default=10, help='Number of epochs')
+parser.add_argument('--epochs', type=int, default=30, help='Number of epochs')
 parser.add_argument('--checkpoints_path', type=str, default='../checkpoints')
 parser.add_argument('--ndata', type=int, default=500, help='Number of data ')
 parser.add_argument('--npoints', type=int, default=4000, help='Number of points per cloud')
@@ -87,31 +87,22 @@ def main(
     import pandas as pd
     test_losses, train_losses = [], []
 
+    print ('='*20, 'LOADING MODEL', '='*20)
+    print (f"Model path {checkpoints_path}")
     ############## LOAD PREVIOUS INFORMATIONS ################
     # load results if exists
-    if os.path.exists(os.path.join(checkpoints_path, 'train_loss.npy')):
-        train_losses = np.load(os.path.join(checkpoints_path, 'train_loss.npy'))
+    if os.path.exists(os.path.join(checkpoints_path, 'train_loss.txt')):
+        train_losses = np.loadtxt(os.path.join(checkpoints_path, 'train_loss.txt'))
         train_losses = train_losses.tolist()
 
     if os.path.exists(os.path.join(checkpoints_path, 'val_loss.txt')):
-        test_losses = np.load(os.path.join(checkpoints_path, 'val_loss.txt'))
+        test_losses = np.loadtxt(os.path.join(checkpoints_path, 'val_loss.txt'))
         test_losses = test_losses.tolist()
 
     # create save folder if not exists
     if not os.path.exists(checkpoints_path):
         os.makedirs(checkpoints_path)
 
-
-    # load model if exists
-    models_saved = glob.glob(os.path.join(checkpoints_path, 'model_*.torch'))
-    if len(models_saved) > 0:
-        # get most recent model
-        epoches_done = max([int(model.split('_')[-1].split('.')[0]) for model in models_saved])
-        model_path = os.path.join(checkpoints_path, f'model_{epoches_done}.torch')
-        print(f"Loading model from {model_path}")
-        model.load_state_dict(torch.load(model_path))
-    else:
-        epoches_done = 0
 
     ############## LOAD DATA ################
     import sys
@@ -159,6 +150,17 @@ def main(
         model = voxAutoEncoder(input_shape).to(DEVICE)
 
 
+    # load model if exists
+    models_saved = glob.glob(os.path.join(checkpoints_path, 'model_*.pth'))
+    if len(models_saved) > 0:
+        # get most recent model
+        epoches_done = max([int(model.split('_')[-1].split('.')[0]) for model in models_saved])
+        model_path = os.path.join(checkpoints_path, f'model_{epoches_done}.pth')
+        print(f"Loading model from {model_path}")
+        model.load_state_dict(torch.load(model_path))
+    else:
+        epoches_done = 0
+
    
     from torch.utils.data import DataLoader, SubsetRandomSampler
     ndata = 1000
@@ -173,7 +175,7 @@ def main(
     loss_fn = nn.MSELoss()
     if train:
         print ('='*20, 'TRAINING', '='*20)
-        for epoch in range( +1, epoches_done+epochs+1):
+        for epoch in range(epoches_done, epoches_done+epochs+1):
             print('=' * 20, epoch + 1, '=' * 20)
             tloss = train_one_epoch(train_loader, model, optimizer, loss_fn)
             vloss= test_one_epoch(test_loader, model, loss_fn)
