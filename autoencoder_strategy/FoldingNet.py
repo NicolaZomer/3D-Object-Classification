@@ -94,6 +94,10 @@ class FoldNet(nn.Module):
         codeword = self.encoder(input)
         output = self.decoder(codeword)
         return output, codeword
+    
+    def encode (self, input):
+        codeword = self.encoder(input)
+        return codeword
 
     def get_parameter(self):
         return list(self.encoder.parameters()) + list(self.decoder.parameters())

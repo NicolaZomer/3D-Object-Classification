@@ -16,7 +16,9 @@ import matplotlib.pyplot as plt
 
 sys.path.append('../')
 from dataset.voxelDataset import VoxelDataset
+from dataset.PointCloudDataset import PointCloudDataset
 from voxel_ae import voxAutoEncoder
+from FoldingNet import FoldNet
 
 from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score
@@ -30,7 +32,7 @@ def get_scores (target, predictions):
     results['precision'] = precision_score(target, predictions, average='macro')
     results['f1'] = f1_score(target, predictions, average='macro')
     # dataframe
-    df = pd.DataFrame(results)
+    df = pd.DataFrame(results , index=[0])
     return df
 
 def create_encoded_states(model, dataset):
@@ -55,15 +57,15 @@ def create_encoded_states(model, dataset):
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--checkpoints_path', type=str, default='../checkpoints')
-parser.add_argument('--model', type=str, default='vox')
-parser.add_argument('--data_dir', type=str, default='../dataset/svm_dataset')
-parser.add_argument('--create_dataset', type=bool, default=True)
+parser.add_argument('--model_name', type=str, default='foldingnet')
+parser.add_argument('--data_dir', type=str, default='../dataset/svm_dataset_fold')
+parser.add_argument('--create_dataset', type=bool, default=False)
 parser.add_argument('--ndata', type=int, default=-1, help='Number of data ')
 parser.add_argument('--train', type=bool, default=True, help='Train or test')
 
 def main (
     checkpoints_path: str = '../checkpoints',
-    model: str = 'vox',
+    model_name: str = 'vox',
     data_dir: str = '../dataset/svm_dataset',
     create_dataset: bool = False,
     ndata: int = -1,
@@ -71,30 +73,65 @@ def main (
     ):
     import numpy as np
 
-    checkpoints_path  = os.path.join(checkpoints_path, 'vox')
+    checkpoints_path  = os.path.join(checkpoints_path, model_name)
     if create_dataset:
-        # create dataset of encoded states
-        input_shape = (32, 32, 32)
-        dataset_train  = VoxelDataset('../dataset/ModelNet40', 
-                                        train=True, 
-                                    )
-        dataset_val    = VoxelDataset('../dataset/ModelNet40', 
-                                        train=False, 
+        if model_name == 'vox':
+            # create dataset of encoded states
+            input_shape = (32, 32, 32)
+            dataset_train  = VoxelDataset('../dataset/ModelNet40', 
+                                            train=True, 
                                         )
+            dataset_val    = VoxelDataset('../dataset/ModelNet40', 
+                                            train=False, 
+                                            )
 
-        # get subset of dataset random samples
-        if ndata > 0:
-            np.random.seed(0)
-            train_indices = np.random.choice(len(dataset_train), ndata, replace=False)
-            val_indices = np.random.choice(len(dataset_val), ndata, replace=False)
+            # get subset of dataset random samples
+            if ndata > 0:
+                np.random.seed(0)
+                train_indices = np.random.choice(len(dataset_train), ndata, replace=False)
+                val_indices = np.random.choice(len(dataset_val), ndata, replace=False)
 
-            dataset_train = torch.utils.data.Subset(dataset_train, train_indices)
-            dataset_val = torch.utils.data.Subset(dataset_val, val_indices)
+                dataset_train = torch.utils.data.Subset(dataset_train, train_indices)
+                dataset_val = torch.utils.data.Subset(dataset_val, val_indices)
 
-        print (f"Train dataset size: {len(dataset_train)}")
-        print (f"Val dataset size: {len(dataset_val)}")
+            print (f"Train dataset size: {len(dataset_train)}")
+            print (f"Val dataset size: {len(dataset_val)}")
 
-        model = voxAutoEncoder(input_shape).to(DEVICE)
+            model = voxAutoEncoder(input_shape).to(DEVICE)
+        
+        elif model_name == 'foldingnet':
+            dataset_train  = PointCloudDataset('../dataset/modelnet40_normal_resampled', 
+                                            train=True, 
+                                            ndata=4000, 
+                                            file_extension='.txt', 
+                                            npoints=4000
+                                        )
+            if train: test_data =2000
+            else: test_data = -1
+            npoints = 4000
+            dataset_val    = PointCloudDataset('../dataset/modelnet40_normal_resampled', 
+                                                train=False, 
+                                                ndata=test_data,
+                                                file_extension='.txt', 
+                                                npoints=npoints
+                                            )
+
+            print (f"Train dataset size: {len(dataset_train)}")
+            print (f"Val dataset size: {len(dataset_val)}")
+
+            # get subset of dataset random samples
+            if ndata > 0:
+                np.random.seed(0)
+                train_indices = np.random.choice(len(dataset_train), ndata, replace=False)
+                val_indices = np.random.choice(len(dataset_val), ndata, replace=False)
+
+                dataset_train = torch.utils.data.Subset(dataset_train, train_indices)
+                dataset_val = torch.utils.data.Subset(dataset_val, val_indices)
+
+            print (f"Train dataset size: {len(dataset_train)}")
+            print (f"Val dataset size: {len(dataset_val)}")
+
+            model = FoldNet(npoints).to(DEVICE)
 
 
         # load model if exists
@@ -106,24 +143,24 @@ def main (
             print(f"Loading model from {model_path}")
             model.load_state_dict(torch.load(model_path))
 
-        # plot an example of reconstruction
-        sample = dataset_val[100]
-        voxel, label = sample
-        voxel = voxel.unsqueeze(0)
-        voxel = voxel.to(DEVICE)
-        decoded, encoded = model(voxel)
-        decoded = decoded.detach().cpu().numpy().squeeze()
-        voxel = voxel.cpu().numpy().squeeze()
+        # # plot an example of reconstruction
+        # sample = dataset_val[100]
+        # voxel, label = sample
+        # voxel = voxel.unsqueeze(0)
+        # voxel = voxel.to(DEVICE)
+        # decoded, encoded = model(voxel)
+        # decoded = decoded.detach().cpu().numpy().squeeze()
+        # voxel = voxel.cpu().numpy().squeeze()
 
-        # plot
-        fig = plt.figure()
-        ax = fig.add_subplot(121, projection='3d')
-        ax.voxels(voxel, edgecolor='k')
-        ax.set_title('Original')
-        ax = fig.add_subplot(122, projection='3d')
-        ax.voxels(decoded, edgecolor='k')
-        ax.set_title('Reconstructed')
-        plt.show()
+        # # plot
+        # fig = plt.figure()
+        # ax = fig.add_subplot(121, projection='3d')
+        # ax.voxels(voxel, edgecolor='k')
+        # ax.set_title('Original')
+        # ax = fig.add_subplot(122, projection='3d')
+        # ax.voxels(decoded, edgecolor='k')
+        # ax.set_title('Reconstructed')
+        # plt.show()
 
         encoded_states_train, labels_train = create_encoded_states(model, dataset_train)
         encoded_states_val, labels_val = create_encoded_states(model, dataset_val)
@@ -163,7 +200,8 @@ def main (
 
     # clf = SVC(gamma='auto')
 
-    clf = SVC(kernel='linear', C=1.0, random_state=0, verbose=True)
+    # print (encoded_states_train[100])
+    clf = SVC(kernel='linear', C=1.0, random_state=0)
 
 
     clf.fit(encoded_states_train, labels_train)
