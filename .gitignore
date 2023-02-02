@@ -5,7 +5,11 @@ __pycache__/
 
 # C extensions
 *.so
-dataset/*
+dataset/ModelNet40/*
+dataset/modelnet40_normal_resampled/*
+dataset/svm_dataset/*
+dataset/modelnet40_normal_resampled.zip
+dataset/ModelNet40.zip
 *DS_Store
 checkpoints/*
 # Distribution / packaging

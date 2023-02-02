@@ -81,7 +81,7 @@ def main (
 
         Net = PointNet(nclasses=40)
         parameters = Net.parameters()
-        optimizer =  optim.Adam(parameters, lr=5e-4, weight_decay=1e-5)
+        optimizer =  optim.SGD(parameters, lr=5e-4, weight_decay=1e-5)
 
 
     elif model_name == 'voxnet':

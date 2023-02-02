@@ -93,7 +93,7 @@ class FoldNet(nn.Module):
     def forward(self, input):
         codeword = self.encoder(input)
         output = self.decoder(codeword)
-        return output
+        return output, codeword
 
     def get_parameter(self):
         return list(self.encoder.parameters()) + list(self.decoder.parameters())

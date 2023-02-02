@@ -9,14 +9,29 @@ import torch.optim as optim
 import sys, os
 import glob
 from tqdm import tqdm
-
+import numpy as np
+import pandas as pd
+import open3d as o3d
+import matplotlib.pyplot as plt
 
 sys.path.append('../')
 from dataset.voxelDataset import VoxelDataset
 from voxel_ae import voxAutoEncoder
 
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score
+
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+def get_scores (target, predictions):
+    results = {}
+    results['accuracy'] = accuracy_score(target, predictions)
+    results['recall'] = recall_score(target, predictions, average='macro')
+    results['precision'] = precision_score(target, predictions, average='macro')
+    results['f1'] = f1_score(target, predictions, average='macro')
+    # dataframe
+    df = pd.DataFrame(results)
+    return df
 
 def create_encoded_states(model, dataset):
     """
@@ -32,9 +47,8 @@ def create_encoded_states(model, dataset):
             voxel = voxel.unsqueeze(0)
             voxel = voxel.to(DEVICE)
             encoded = model.encode(voxel)
-            encoded_states.append(encoded)
+            encoded_states.append(encoded.cpu().numpy().flatten())
             labels.append(label)
-    model.train()
     return encoded_states, labels
 
 
@@ -44,17 +58,20 @@ parser.add_argument('--checkpoints_path', type=str, default='../checkpoints')
 parser.add_argument('--model', type=str, default='vox')
 parser.add_argument('--data_dir', type=str, default='../dataset/svm_dataset')
 parser.add_argument('--create_dataset', type=bool, default=True)
+parser.add_argument('--ndata', type=int, default=-1, help='Number of data ')
+parser.add_argument('--train', type=bool, default=True, help='Train or test')
 
 def main (
     checkpoints_path: str = '../checkpoints',
     model: str = 'vox',
     data_dir: str = '../dataset/svm_dataset',
     create_dataset: bool = False,
+    ndata: int = -1,
+    train: bool = True,
     ):
-
+    import numpy as np
 
     checkpoints_path  = os.path.join(checkpoints_path, 'vox')
-
     if create_dataset:
         # create dataset of encoded states
         input_shape = (32, 32, 32)
@@ -65,11 +82,20 @@ def main (
                                         train=False, 
                                         )
 
+        # get subset of dataset random samples
+        if ndata > 0:
+            np.random.seed(0)
+            train_indices = np.random.choice(len(dataset_train), ndata, replace=False)
+            val_indices = np.random.choice(len(dataset_val), ndata, replace=False)
+
+            dataset_train = torch.utils.data.Subset(dataset_train, train_indices)
+            dataset_val = torch.utils.data.Subset(dataset_val, val_indices)
 
         print (f"Train dataset size: {len(dataset_train)}")
         print (f"Val dataset size: {len(dataset_val)}")
 
         model = voxAutoEncoder(input_shape).to(DEVICE)
+
 
         # load model if exists
         models_saved = glob.glob(os.path.join(checkpoints_path, 'model_*.pth'))
@@ -80,20 +106,31 @@ def main (
             print(f"Loading model from {model_path}")
             model.load_state_dict(torch.load(model_path))
 
+        # plot an example of reconstruction
+        sample = dataset_val[100]
+        voxel, label = sample
+        voxel = voxel.unsqueeze(0)
+        voxel = voxel.to(DEVICE)
+        decoded, encoded = model(voxel)
+        decoded = decoded.detach().cpu().numpy().squeeze()
+        voxel = voxel.cpu().numpy().squeeze()
+
+        # plot
+        fig = plt.figure()
+        ax = fig.add_subplot(121, projection='3d')
+        ax.voxels(voxel, edgecolor='k')
+        ax.set_title('Original')
+        ax = fig.add_subplot(122, projection='3d')
+        ax.voxels(decoded, edgecolor='k')
+        ax.set_title('Reconstructed')
+        plt.show()
+
         encoded_states_train, labels_train = create_encoded_states(model, dataset_train)
         encoded_states_val, labels_val = create_encoded_states(model, dataset_val)
 
 
         # save encoded states and labels
         print ('='*20, 'SAVING ENCODED STATES', '='*20)
-        # to numpy
-        encoded_states_train = [encoded.cpu().numpy() for encoded in encoded_states_train]
-        encoded_states_val = [encoded.cpu().numpy() for encoded in encoded_states_val]
-        labels_train = [label.cpu().numpy() for label in labels_train]
-        labels_val = [label.cpu().numpy() for label in labels_val]
-
-        # save
-        import numpy as np
 
         # create dir if not exists
         if not os.path.exists(data_dir):
@@ -113,17 +150,31 @@ def main (
         labels_train = np.load(os.path.join(data_dir, 'labels_train.npy'))
         labels_val = np.load(os.path.join(data_dir, 'labels_val.npy'))
 
+    print (f"Train dataset size: {len(encoded_states_train)}")
+    print (f"Val dataset size: {len(encoded_states_val)}")
 
-    # train SVM classifier
-    print ('='*20, 'TRAINING SVM CLASSIFIER', '='*20)
+
+
+    # train classifier
     from sklearn.svm import SVC
-    from sklearn.metrics import accuracy_score
-    clf = SVC(gamma='auto')
+    from sklearn.neural_network import MLPClassifier
+
+    print ('='*20, 'TRAINING SVM CLASSIFIER', '='*20)
+
+    # clf = SVC(gamma='auto')
+
+    clf = SVC(kernel='linear', C=1.0, random_state=0, verbose=True)
+
+
     clf.fit(encoded_states_train, labels_train)
+    predictions = clf.predict(encoded_states_train)
+    train_scores = get_scores(labels_train, predictions)
+    # save 
+    print (f"Train scores: \n{train_scores}")
 
-    print (f"Train accuracy: {accuracy_score(labels_train, clf.predict(encoded_states_train))}")
-    print (f"Val accuracy: {accuracy_score(labels_val, clf.predict(encoded_states_val))}")
-
+    predictions = clf.predict(encoded_states_val)
+    train_scores = get_scores(labels_val, predictions)
+    print (f"test scores: \n{train_scores}")
         
 
 if __name__ == '__main__':

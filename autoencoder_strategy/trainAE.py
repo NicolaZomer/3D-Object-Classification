@@ -60,10 +60,10 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--batch_size', type=int, default=32)
 parser.add_argument('--epochs', type=int, default=30, help='Number of epochs')
 parser.add_argument('--checkpoints_path', type=str, default='../checkpoints')
-parser.add_argument('--ndata', type=int, default=500, help='Number of data ')
+parser.add_argument('--ndata', type=int, default=1000, help='Number of data ')
 parser.add_argument('--npoints', type=int, default=4000, help='Number of points per cloud')
 parser.add_argument('--train', type=bool, default=True, help='Train or test')
-parser.add_argument('--model', type=str , default='vox', help='foldingnet or vox')
+parser.add_argument('--model_name', type=str , default='foldingnet', help='foldingnet or vox', choices=['foldingnet', 'vox'])
 
 args = parser.parse_args()
 
@@ -75,13 +75,14 @@ def main(
     ndata=4000,
     npoints=5000,
     train=True,
-    model='foldingnet'
+    model_name='foldingnet'
     ):
-    checkpoints_path = os.path.join(checkpoints_path, model)
+    checkpoints_path = os.path.join(checkpoints_path, model_name)
 
     ############## LOAD MODEL AND DEFINE LEARNING SCENARIO ################
     from FoldingNet import FoldNet, Encoder, Decoder
     from voxel_ae import voxAutoEncoder
+    from ch_loss import ChamferLoss
 
 
     import pandas as pd
@@ -113,10 +114,10 @@ def main(
 
     print ('='*20, 'LOADING DATA', '='*20)
 
-    if model == 'foldingnet':
+    if model_name == 'foldingnet':
         dataset_train  = PointCloudDataset('../dataset/modelnet40_normal_resampled', 
                                                 train=True, 
-                                                ndata=ndata, 
+                                                ndata=4000,
                                                 file_extension='.txt', 
                                                 npoints=npoints
                                             )
@@ -124,17 +125,22 @@ def main(
         else: test_data = -1
         dataset_val    = PointCloudDataset('../dataset/modelnet40_normal_resampled', 
                                             train=False, 
-                                            ndata=test_data,
+                                            ndata=2000,
                                             file_extension='.txt', 
                                             npoints=npoints
                                         )
+
+        # sample ndata points from each cloud
+        np.random.seed(0)
+        dataset_train = torch.utils.data.Subset(dataset_train, np.random.choice(len(dataset_train), ndata, replace=False))
+        dataset_val = torch.utils.data.Subset(dataset_val, np.random.choice(len(dataset_val), ndata, replace=False))    
 
         print (f"Train dataset size: {len(dataset_train)}")
         print (f"Val dataset size: {len(dataset_val)}")
 
         model = FoldNet(num_points=npoints).to(DEVICE)
     
-    elif model == 'vox':
+    elif model_name == 'vox':
         input_shape = (32, 32, 32)
         dataset_train  = VoxelDataset('../dataset/ModelNet40', 
                                         train=True, 
@@ -154,7 +160,7 @@ def main(
     models_saved = glob.glob(os.path.join(checkpoints_path, 'model_*.pth'))
     if len(models_saved) > 0:
         # get most recent model
-        epoches_done = max([int(model.split('_')[-1].split('.')[0]) for model in models_saved])
+        epoches_done = max([int(m.split('_')[-1].split('.')[0]) for m in models_saved])
         model_path = os.path.join(checkpoints_path, f'model_{epoches_done}.pth')
         print(f"Loading model from {model_path}")
         model.load_state_dict(torch.load(model_path))
@@ -168,11 +174,17 @@ def main(
     train_loader = DataLoader(dataset_train, batch_size=batch_size, num_workers=4, sampler=SubsetRandomSampler(range(ndata)))
     test_loader = DataLoader(dataset_val, batch_size=32,  sampler=SubsetRandomSampler(range(ndata)))
 
-    
-
     ############## TRAINING ################
-    optimizer = optim.Adam(model.parameters(), lr=5e-4, weight_decay=1e-6)
-    loss_fn = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-6)
+    loss_fn = None
+    if model_name == 'foldingnet':
+        print ('='*20, 'USING CHAMFER LOSS', '='*20)
+        loss_fn = ChamferLoss()
+    
+    elif model_name == 'vox':
+        print ('='*20, 'USING MSE LOSS', '='*20)
+        loss_fn = nn.MSELoss()
+
     if train:
         print ('='*20, 'TRAINING', '='*20)
         for epoch in range(epoches_done, epoches_done+epochs+1):
