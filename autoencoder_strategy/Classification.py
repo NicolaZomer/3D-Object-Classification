@@ -6,7 +6,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-import sys, os
+import sys
+import os
 import glob
 from tqdm import tqdm
 import numpy as np
@@ -59,7 +60,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--checkpoints_path', type=str, default='../checkpoints')
 parser.add_argument('--model_name', type=str, default='foldingnet')
 parser.add_argument('--data_dir', type=str, default='../dataset/svm_dataset_fold')
-parser.add_argument('--create_dataset', type=bool, default=False)
+parser.add_argument('--create_dataset', type=bool, default=True)
 parser.add_argument('--ndata', type=int, default=-1, help='Number of data ')
 parser.add_argument('--train', type=bool, default=True, help='Train or test')
 
@@ -71,7 +72,6 @@ def main (
     ndata: int = -1,
     train: bool = True,
     ):
-    import numpy as np
 
     checkpoints_path  = os.path.join(checkpoints_path, model_name)
     if create_dataset:
@@ -191,28 +191,95 @@ def main (
     print (f"Val dataset size: {len(encoded_states_val)}")
 
 
+    #############################
+    # CLASSIFICATION
+    #############################
+    ############# SVM #############
+    SVM = True
+    if SVM:
+        from sklearn.svm import SVC
+        from sklearn.neural_network import MLPClassifier
 
-    # train classifier
-    from sklearn.svm import SVC
-    from sklearn.neural_network import MLPClassifier
+        print ('='*20, 'TRAINING SVM CLASSIFIER', '='*20)
 
-    print ('='*20, 'TRAINING SVM CLASSIFIER', '='*20)
+        # if best params file exists, load it
+        best_params_file = os.path.join('params', 'SVMbest_params.txt')
+        if os.path.exists(best_params_file):
+            best_params = {}
+            with open(best_params_file, 'r') as f:
+                for line in f:
+                    line = line.replace('\'', '').replace('{', '').replace('}', '').replace(' ', '') # remove spaces and brackets
+                    line = line.split(',')
+                    for param in line:
+                        param = param.split(':')
+                        best_params[param[0]] = float(param[1]) if param[1].replace('.', '').isnumeric() else param[1]
+            print ('best params', best_params)
+            clf = SVC(**best_params)
+        else:
+            print ("doing grid search")
+            # grid search
+            param_grid = {'C': [0.1,1, 10, 100], 
+                        'gamma': [1,0.1,0.01,0.001],
+                        'kernel': ['rbf', 'poly', 'sigmoid']}
 
-    # clf = SVC(gamma='auto')
+            from sklearn.model_selection import GridSearchCV
+            grid = GridSearchCV(SVC(),param_grid,refit=True,verbose=2)
+            grid.fit(encoded_states_train, labels_train)
+            print('best params', grid.best_params_)
+            print('best estimator', grid.best_estimator_)
 
-    # print (encoded_states_train[100])
-    clf = SVC(kernel='linear', C=1.0, random_state=0)
+            # save best params
+            if not os.path.exists('params'):
+                os.makedirs('params')
+            with open(os.path.join('params', 'SVMbest_params.txt'), 'w') as f:
+                f.write(str(grid.best_params_))
 
+            clf = grid.best_estimator_
 
-    clf.fit(encoded_states_train, labels_train)
-    predictions = clf.predict(encoded_states_train)
-    train_scores = get_scores(labels_train, predictions)
-    # save 
+        clf.fit(encoded_states_train, labels_train)
+        predictions = clf.predict(encoded_states_train)
+        train_scores = get_scores(labels_train, predictions)
+        # save 
+        print (f"Train scores: \n{train_scores}")
+
+        predictions = clf.predict(encoded_states_val)
+        train_scores = get_scores(labels_val, predictions)
+        print (f"test scores: \n{train_scores}")
+
+    ############# FFNN #############
+    print ('='*20, 'TRAINING FFNN CLASSIFIER', '='*20)
+    from FFClassifier import classifier
+
+    # create a dataset/loader for the encoded states
+    dataset_train = torch.utils.data.TensorDataset(torch.from_numpy(encoded_states_train).float(), torch.from_numpy(labels_train).long())
+    dataset_val = torch.utils.data.TensorDataset(torch.from_numpy(encoded_states_val).float(), torch.from_numpy(labels_val).long())
+
+    train_loader = torch.utils.data.DataLoader(dataset_train, batch_size=64, shuffle=False)
+    val_loader = torch.utils.data.DataLoader(dataset_val, batch_size=64, shuffle=False)
+
+    FFclf = classifier(encoded_states_train.shape[1], len(np.unique(labels_train)))
+
+    if os.path.exists(os.path.join(FFclf.save_dir, 'best.pth')):
+        print ('Loading FFNN classifier from {}'.format(os.path.join(FFclf.save_dir, 'best.pth')))
+        FFclf.load('best.pth')
+    else:
+        FFclf.fit(train_loader, val_loader, epochs=300)
+        # load best model
+        FFclf.load('best.pth')
+
+    print ('='*20, 'EVALUATING FFNN CLASSIFIER', '='*20)
+    train_predictions = FFclf.predict(train_loader)
+    train_scores = get_scores(labels_train, train_predictions)
+
+    test_predictions = FFclf.predict(val_loader)
+    test_scores = get_scores(labels_val, test_predictions)
+
+    # save
     print (f"Train scores: \n{train_scores}")
+    print (f"Test scores: \n{test_scores}")
 
-    predictions = clf.predict(encoded_states_val)
-    train_scores = get_scores(labels_val, predictions)
-    print (f"test scores: \n{train_scores}")
+
+
         
 
 if __name__ == '__main__':

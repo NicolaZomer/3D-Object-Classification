@@ -12,6 +12,9 @@ dataset/modelnet40_normal_resampled.zip
 dataset/ModelNet40.zip
 *DS_Store
 checkpoints/*
+autoencoder_strategy/FFClassifier_checkpoint/*
+autoencoder_strategy/nn_distance/*
+dataset/svm_dataset_fold/*
 # Distribution / packaging
 .Python
 build/

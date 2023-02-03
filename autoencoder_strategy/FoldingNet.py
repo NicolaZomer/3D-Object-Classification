@@ -1,9 +1,7 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import numpy as np
 import itertools
 
@@ -26,16 +24,31 @@ class Encoder(nn.Module):
 
     def forward(self, input):
         input = input.transpose(2, 1)
-        x = F.relu(self.bn1(self.conv1(input)))
-        local_feature = x  # save the  low level features to concatenate this global feature.
-        x = F.relu(self.bn2(self.conv2(x)))
-        x = F.relu(self.bn3(self.conv3(x)))
-        x = torch.max(x, 2, keepdim=True)[0]
-        global_feature = x.view(-1, 1024, 1).repeat(1, 1, self.num_points)
-        feature = torch.cat([local_feature, global_feature], 1)  # [bs, 1088, 2048]
+        x = self.conv1(input)
+        x = self.bn1(x)
+        x = nn.ReLU()(x)
 
-        x = F.relu(self.fc1(feature.transpose(1, 2)))
-        x = F.relu(self.fc2(x))
+
+        local_feature = x  # save the  low level features to concatenate this global feature.
+        x = self.conv2(x)
+        x = self.bn2(x)
+        x = nn.ReLU()(x)
+
+        x = self.conv3(x)
+        x = self.bn3(x)
+        x = nn.ReLU()(x)
+
+        x = torch.max(x, 2, keepdim=True)[0]
+
+        global_feature = x.view(-1, 1024, 1).repeat(1, 1, self.num_points)
+
+        feature = torch.cat([local_feature, global_feature], 1)  
+
+        x = feature.transpose(1, 2)
+        x = self.fc1(x)
+        x = nn.ReLU()(x)
+        x = self.fc2(x)
+
 
         return torch.max(x, 1, keepdim=True)[0]  # [bs, 1, 512]
 

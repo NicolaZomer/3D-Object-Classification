@@ -55,15 +55,30 @@ def test_one_epoch(test_loader, model, loss_fn):
     
     return np.mean(losses)
 
+import sys
+sys.path.append('../')
+import tensorflow_graphics as tfg
+sys.path.append('nn_distance')
+
+
+def myChLoss (pred, label):
+    """ 
+    pred: BxNx3,
+    label: BxNx3, """
+
+    distances = tfg.nn.loss.chamfer_distance.evaluate(pred, label)
+    print (distances)
+    return distances 
+
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--batch_size', type=int, default=32)
 parser.add_argument('--epochs', type=int, default=30, help='Number of epochs')
 parser.add_argument('--checkpoints_path', type=str, default='../checkpoints')
-parser.add_argument('--ndata', type=int, default=4000, help='Number of data ')
+parser.add_argument('--ndata', type=int, default=300, help='Number of data ')
 parser.add_argument('--npoints', type=int, default=4000, help='Number of points per cloud')
 parser.add_argument('--train', type=bool, default=True, help='Train or test')
-parser.add_argument('--model_name', type=str , default='vox', help='foldingnet or vox', choices=['foldingnet', 'vox'])
+parser.add_argument('--model_name', type=str , default='foldingnet', help='foldingnet or vox', choices=['foldingnet', 'vox'])
 
 args = parser.parse_args()
 
@@ -133,12 +148,14 @@ def main(
         # sample ndata points from each cloud
         np.random.seed(0)
         dataset_train = torch.utils.data.Subset(dataset_train, np.random.choice(len(dataset_train), ndata, replace=False))
-        dataset_val = torch.utils.data.Subset(dataset_val, np.random.choice(len(dataset_val), ndata, replace=False))    
+        dataset_val = torch.utils.data.Subset(dataset_val, np.random.choice(len(dataset_val), 2000, replace=False))    
 
         print (f"Train dataset size: {len(dataset_train)}")
         print (f"Val dataset size: {len(dataset_val)}")
 
-        model = FoldNet(num_points=npoints).to(DEVICE)
+        # model = FoldNet(num_points=npoints).to(DEVICE)
+        from convAE import AutoEncoder
+        model = AutoEncoder(npoints, batch_size=batch_size).to(DEVICE)
     
     elif model_name == 'vox':
         input_shape = (32, 32, 32)
@@ -179,7 +196,10 @@ def main(
     loss_fn = None
     if model_name == 'foldingnet':
         print ('='*20, 'USING CHAMFER LOSS', '='*20)
-        loss_fn = ChamferLoss()
+        # from ch_loss import ChamferLoss
+        # loss_fn = ChamferLoss()
+        loss_fn = nn.MSELoss() #myChLoss()
+
     
     elif model_name == 'vox':
         print ('='*20, 'USING MSE LOSS', '='*20)
