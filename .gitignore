@@ -14,7 +14,6 @@ dataset/ModelNet40.zip
 checkpoints/*
 autoencoder_strategy/FFClassifier_checkpoint/*
 autoencoder_strategy/nn_distance/*
-dataset/svm_dataset_fold/*
 # Distribution / packaging
 .Python
 build/
