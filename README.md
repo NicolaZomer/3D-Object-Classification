@@ -30,7 +30,7 @@ Moreover, we test a further approach, based on autoencoder reconstruction of the
 The architecture of PointNet is shown below:
 
 <p align="center">
-  <img src="imgs/pnet.png" width="200" title="PointNet">
+  <img src="imgs/pneth.png" width="1000" title="PointNet">
 </p>
 
 ### 2. VoxelNet
@@ -59,3 +59,6 @@ We train an autoencoder to reconstruct the input point cloud. The architecture o
 [5] C. R. Qi, H. Su, K. Mo, and L. J. Guibas, “Pointnet: Deep learning on point sets for 3d classification and segmentation,” CoRR, vol. abs/1612.00593, 2016.
 
 [6] Yang Yaoqing, Feng Chen, Shen Yiru and Tian Dong, *FoldingNet: Point Cloud Auto-encoder via Deep Grid Deformation*, on Computer Vision and Pattern Recognition (cs.CV), FOS: Computer and information sciences, FOS: Computer and information sciences
+
+## inspiring projects
+**pointnet2**: https://github.com/charlesq34/pointnet2

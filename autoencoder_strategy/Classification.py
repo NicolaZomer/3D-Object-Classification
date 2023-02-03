@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import numpy as np
 
 import sys
 import os
@@ -61,7 +62,7 @@ parser.add_argument('--checkpoints_path', type=str, default='../checkpoints')
 parser.add_argument('--model_name', type=str, default='foldingnet')
 parser.add_argument('--data_dir', type=str, default='../dataset/svm_dataset_fold')
 parser.add_argument('--create_dataset', type=bool, default=True)
-parser.add_argument('--ndata', type=int, default=-1, help='Number of data ')
+parser.add_argument('--ndata', type=int, default=100, help='Number of data ')
 parser.add_argument('--train', type=bool, default=True, help='Train or test')
 
 def main (
@@ -72,6 +73,7 @@ def main (
     ndata: int = -1,
     train: bool = True,
     ):
+    import numpy as np
 
     checkpoints_path  = os.path.join(checkpoints_path, model_name)
     if create_dataset:
@@ -172,7 +174,7 @@ def main (
         # create dir if not exists
         if not os.path.exists(data_dir):
             os.makedirs(data_dir)
-
+        
         np.save(os.path.join(data_dir, 'encoded_states_train.npy'), encoded_states_train)
         np.save(os.path.join(data_dir, 'encoded_states_val.npy'), encoded_states_val)
         np.save(os.path.join(data_dir, 'labels_train.npy'), labels_train)
