@@ -11,10 +11,10 @@ sys.path.append(ROOR_DIR)
 
 
 class encoder (nn.Module):
-    def __init__ (self, npoints, batch_size):
+    def __init__ (self, npoints, ):
         super(encoder, self).__init__()
         self.npoints = npoints
-        self.batch_size = batch_size
+        # self.batch_size = batch_size
 
         self.conv1 = self.conv2D(1, 64, [1, 3], padding='valid', bn=True, name='conv1')
         self.conv2 = self.conv2D(64, 64, [1, 1], bn=True, name='conv2')
@@ -69,7 +69,7 @@ class encoder (nn.Module):
         return model
 
 
-    def forward(self, x):
+    def forward(self, x, batch_size):
         """ Classification PointNet, input is BxNx3, output Bx40 
         input is batch_size x nchannels x num_pointsx3 
 
@@ -92,7 +92,7 @@ class encoder (nn.Module):
         x, indices = self.maxpool(x)
         if verbose: print ('maxpool', x.shape)
         # FC layers
-        x = torch.reshape (x, (self.batch_size, -1))
+        x = torch.reshape (x, (batch_size, -1))
         if verbose: print ('reshape', x.shape)
         x = self.fc1(x)
         if verbose: print ('fc1', x.shape)
@@ -100,10 +100,9 @@ class encoder (nn.Module):
         return x, indices
 
 class decoder (nn.Module):
-    def __init__ (self, npoints, batch_size):
+    def __init__ (self, npoints):
         super(decoder, self).__init__()
         self.npoints = npoints
-        self.batch_size = batch_size
 
         # self.fc1 = self.fully_connected(64, 256, bn=False, name='fc1')
         # self.fc2 = self.fully_connected(256, 512, bn=False, name='fc2')
@@ -159,7 +158,7 @@ class decoder (nn.Module):
 
         return model
 
-    def forward(self, x, indices):
+    def forward(self, x, indices, batch_size):
         """ Classification PointNet, input is BxNx3, output Bx40 
         input is batch_size x nchannels x num_pointsx3 
 
@@ -168,7 +167,7 @@ class decoder (nn.Module):
         if verbose: print ('decoder input', x.shape)
         x = self.fc3(x)
         if verbose: print ('fc3', x.shape)
-        x = torch.reshape(x, [self.batch_size, 1024, 1, 1])
+        x = torch.reshape(x, [batch_size, 1024, 1, 1])
 
         #maxunpool2d
         x = self.maxunpool(x, indices)
@@ -184,23 +183,22 @@ class decoder (nn.Module):
         if verbose: print ('conv4', x.shape)
         x = self.conv5(x)
         if verbose: print ('conv5', x.shape)
-        x = torch.reshape(x, [self.batch_size, self.npoints, 3])
+        x = torch.reshape(x, [batch_size, self.npoints, 3])
         if verbose: print ('output', x.shape)
         return x
 
 
 class AutoEncoder(nn.Module):
-    def __init__(self, npoints, batch_size):
+    def __init__(self, npoints):
         super(AutoEncoder, self).__init__()
-        self.encoder = encoder(npoints, batch_size)
-        self.decoder = decoder(npoints, batch_size)
+        self.encoder = encoder(npoints)
+        self.decoder = decoder(npoints)
 
 
-    def forward(self, x):
-        x, indices = self.encoder(x)
+    def forward(self, x, batch_size):
+        x, indices = self.encoder(x, batch_size)
         encoded = x
-        x = self.decoder(x, indices)
-
+        x = self.decoder(x, indices, batch_size)
         return x, encoded
 
 if __name__ == '__main__':
@@ -227,12 +225,7 @@ if __name__ == '__main__':
 
     npoints = x.shape[1]
     batch_size = x.shape[0]
-    model = Autoencoder(npoints, batch_size).float()
+    model = AutoEncoder(npoints).float()
 
-    # print parameters
-    for name, param in model.named_parameters():
-        print (name, param.shape)
-
-    # print net
-    print (model)
-
+    # forward
+    x, encoded = model(x, batch_size)

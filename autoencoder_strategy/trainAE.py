@@ -12,8 +12,8 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
-
-
+import warnings 
+warnings.filterwarnings("ignore")
 import numpy as np
 import matplotlib.pyplot as plt
 import os, glob
@@ -21,13 +21,17 @@ from tqdm import tqdm
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def train_one_epoch(train_loader, model, optimizer, loss_fn):
+def train_one_epoch(train_loader, model, optimizer, loss_fn, model_name):
     losses = []
     for ref_cloud in tqdm(train_loader):
         ref_cloud = ref_cloud[0] # the second element in the list is the label, but we dont need it now 
         ref_cloud = ref_cloud.to(DEVICE)
         optimizer.zero_grad()
-        decoded, encoded = model(ref_cloud)
+        if model_name == 'convAE':
+            batch_size = ref_cloud.shape[0]
+            decoded, encoded = model(ref_cloud, batch_size)
+        else:
+            decoded, encoded = model(ref_cloud)
         # get_loss is a function of net
         loss = loss_fn(ref_cloud, decoded)
         # loss = model.get_loss(ref_cloud, decoded)
@@ -38,7 +42,7 @@ def train_one_epoch(train_loader, model, optimizer, loss_fn):
     return np.mean(losses)
 
 
-def test_one_epoch(test_loader, model, loss_fn):
+def test_one_epoch(test_loader, model, loss_fn, model_name):
     model.eval()
     losses = []
 
@@ -47,7 +51,11 @@ def test_one_epoch(test_loader, model, loss_fn):
             ref_cloud = ref_cloud[0]
             ref_cloud = ref_cloud.to(DEVICE)
 
-            decoded, encoded = model(ref_cloud)
+            if model_name == 'convAE':
+                batch_size = ref_cloud.shape[0]
+                decoded, encoded = model(ref_cloud, batch_size)
+            else:
+                decoded, encoded = model(ref_cloud)
             loss = loss_fn(ref_cloud, decoded)
             # loss = model.get_loss(ref_cloud, decoded)
             losses.append(loss.item())
@@ -55,30 +63,17 @@ def test_one_epoch(test_loader, model, loss_fn):
     
     return np.mean(losses)
 
-import sys
-sys.path.append('../')
-import tensorflow_graphics as tfg
-sys.path.append('nn_distance')
 
-
-def myChLoss (pred, label):
-    """ 
-    pred: BxNx3,
-    label: BxNx3, """
-
-    distances = tfg.nn.loss.chamfer_distance.evaluate(pred, label)
-    print (distances)
-    return distances 
 
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--batch_size', type=int, default=32)
 parser.add_argument('--epochs', type=int, default=30, help='Number of epochs')
 parser.add_argument('--checkpoints_path', type=str, default='../checkpoints')
-parser.add_argument('--ndata', type=int, default=300, help='Number of data ')
+parser.add_argument('--ndata', type=int, default=100, help='Number of data ')
 parser.add_argument('--npoints', type=int, default=4000, help='Number of points per cloud')
 parser.add_argument('--train', type=bool, default=True, help='Train or test')
-parser.add_argument('--model_name', type=str , default='foldingnet', help='foldingnet or vox', choices=['foldingnet', 'vox'])
+parser.add_argument('--model_name', type=str , default='convAE', help='foldingnet or vox', choices=['foldingnet', 'vox', 'convAE'])
 
 args = parser.parse_args()
 
@@ -136,8 +131,6 @@ def main(
                                                 file_extension='.txt', 
                                                 npoints=npoints
                                             )
-        if train: test_data = int(ndata/20)
-        else: test_data = -1
         dataset_val    = PointCloudDataset('../dataset/modelnet40_normal_resampled', 
                                             train=False, 
                                             ndata=2000,
@@ -148,14 +141,16 @@ def main(
         # sample ndata points from each cloud
         np.random.seed(0)
         dataset_train = torch.utils.data.Subset(dataset_train, np.random.choice(len(dataset_train), ndata, replace=False))
-        dataset_val = torch.utils.data.Subset(dataset_val, np.random.choice(len(dataset_val), 2000, replace=False))    
+        dataset_val = torch.utils.data.Subset(dataset_val, np.random.choice(len(dataset_val), int(ndata/20), replace=False))    
 
         print (f"Train dataset size: {len(dataset_train)}")
         print (f"Val dataset size: {len(dataset_val)}")
 
-        # model = FoldNet(num_points=npoints).to(DEVICE)
-        from convAE import AutoEncoder
-        model = AutoEncoder(npoints, batch_size=batch_size).to(DEVICE)
+        # # model = FoldNet(num_points=npoints).to(DEVICE)
+        # from convAE import AutoEncoder
+        # model = AutoEncoder(npoints, batch_size=batch_size).to(DEVICE)
+
+        model = FoldNet(num_points=npoints).to(DEVICE)
     
     elif model_name == 'vox':
         input_shape = (32, 32, 32)
@@ -171,6 +166,31 @@ def main(
         print (f"Val dataset size: {len(dataset_val)}")
         
         model = voxAutoEncoder(input_shape).to(DEVICE)
+
+    elif model_name == 'convAE':
+        dataset_train  = PointCloudDataset('../dataset/modelnet40_normal_resampled', 
+                                                train=True, 
+                                                ndata=4000,
+                                                file_extension='.txt', 
+                                                npoints=npoints
+                                            )
+        dataset_val    = PointCloudDataset('../dataset/modelnet40_normal_resampled', 
+                                            train=False, 
+                                            ndata=2000,
+                                            file_extension='.txt', 
+                                            npoints=npoints
+                                        )
+
+        # sample ndata points from each cloud
+        np.random.seed(0)
+        dataset_train = torch.utils.data.Subset(dataset_train, np.random.choice(len(dataset_train), ndata, replace=False))
+        dataset_val = torch.utils.data.Subset(dataset_val, np.random.choice(len(dataset_val), int(ndata/20), replace=False))    
+
+        print (f"Train dataset size: {len(dataset_train)}")
+        print (f"Val dataset size: {len(dataset_val)}")
+
+        from convAE import AutoEncoder
+        model = AutoEncoder(npoints).to(DEVICE)
 
 
     # load model if exists
@@ -188,17 +208,16 @@ def main(
     from torch.utils.data import DataLoader, SubsetRandomSampler
     ndata = 1000
     # subset of dataloader
-    train_loader = DataLoader(dataset_train, batch_size=batch_size, num_workers=4, sampler=SubsetRandomSampler(range(ndata)))
-    test_loader = DataLoader(dataset_val, batch_size=32,  sampler=SubsetRandomSampler(range(ndata)))
+    train_loader = DataLoader(dataset_train, batch_size=batch_size, num_workers=4, shuffle=True)
+    test_loader = DataLoader(dataset_val, batch_size=32,  num_workers=4, shuffle=False)
 
     ############## TRAINING ################
     optimizer = optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-6)
     loss_fn = None
-    if model_name == 'foldingnet':
+    if model_name in ['foldingnet' , 'convAE']:
         print ('='*20, 'USING CHAMFER LOSS', '='*20)
-        # from ch_loss import ChamferLoss
-        # loss_fn = ChamferLoss()
-        loss_fn = nn.MSELoss() #myChLoss()
+        from ch_loss import ChamferLoss
+        loss_fn = ChamferLoss()
 
     
     elif model_name == 'vox':
@@ -209,8 +228,8 @@ def main(
         print ('='*20, 'TRAINING', '='*20)
         for epoch in range(epoches_done, epoches_done+epochs+1):
             print('=' * 20, epoch + 1, '=' * 20)
-            tloss = train_one_epoch(train_loader, model, optimizer, loss_fn)
-            vloss= test_one_epoch(test_loader, model, loss_fn)
+            tloss = train_one_epoch(train_loader, model, optimizer, loss_fn, model_name)
+            vloss= test_one_epoch(test_loader, model, loss_fn, model_name)
             print('Epoch: {}, train loss: {:.4f}, val loss: {:.4f}'.format(epoch, tloss, vloss))
 
             train_losses.append(tloss)
