@@ -51,7 +51,6 @@ Another approach is to use the voxel representation of the 3D models. We use the
 | 0.82  |  0.70|   0.75  |  0.70 | 
 
 
-
 ### 3. Autoencoder reconstruction
 We train an autoencoder to reconstruct the input point cloud. The architecture of the autoencoder is inspired from Folding Net [6]. The codewords are used as features for the classification task, which can be performed using a simple MLP or SVM.
 
