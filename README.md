@@ -64,13 +64,13 @@ For visualization purposes, we use T-SNE to reduce the dimensionality of the cod
 | Model | Accuracy | Precision | Recall | F1 |
 | --- | --- | --- | --- | --- |
 | SVM |  0.95775  |   0.937213   |   0.956921  |   0.945411 |  
-| FFNN | 0.814  |  0.73988  |   0.755867  |  0.742402 | 
+| FFNN | 0.89975   |  0.8533   |   0.890944   |  0.859089  | 
 
 
 #### Testing
 | Model | Accuracy | Precision | Recall | F1 |
 | --- | --- | --- | --- | --- |
-| SVM |  0.95775  |   0.937213   |   0.956921  |   0.945411 |
+| SVM |  0.814  |  0.73988  |   0.755867  |  0.742402 | 
 | FFNN | 0.7885  |  0.710157   |  0.737134  |  0.712737 | 
 
 
