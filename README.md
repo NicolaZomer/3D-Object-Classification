@@ -37,7 +37,6 @@ The architecture of PointNet is shown below:
 | Accuracy | Precision | Recall | F1 |
 | --- | --- | --- | --- |
 | 0.81  |  0.71|   0.71  |  0.70 | 
-|--|--|--|--|
 
 ### 2. VoxelNet
 Another approach is to use the voxel representation of the 3D models. We use the binvox conversion to convert the .off files into .binvox files. The architecture of VoxelNet is based on convolutional layers, as shown below:
@@ -46,7 +45,7 @@ Another approach is to use the voxel representation of the 3D models. We use the
 | Accuracy | Precision | Recall | F1 |
 | --- | --- | --- | --- |
 | 0.82  |  0.70|   0.75  |  0.70 | 
-|--|--|--|--|
+
 
 <p align="center">
   <img src="imgs/vnet.png" width="1000" title="voxnet">
@@ -66,14 +65,13 @@ For visualization purposes, we use T-SNE to reduce the dimensionality of the cod
 | --- | --- | --- | --- | --- |
 | SVM |  0.95775  |   0.937213   |   0.956921  |   0.945411 |  
 | FFNN | 0.814  |  0.73988  |   0.755867  |  0.742402 | 
-|--|--|--|--|--|
+
 
 #### Testing
 | Model | Accuracy | Precision | Recall | F1 |
 | --- | --- | --- | --- | --- |
 | SVM |  0.95775  |   0.937213   |   0.956921  |   0.945411 |
 | FFNN | 0.7885  |  0.710157   |  0.737134  |  0.712737 | 
-|--|--|--|--|--|
 
 
 
