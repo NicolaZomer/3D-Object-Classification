@@ -44,7 +44,11 @@ Another approach is to use the voxel representation of the 3D models. We use the
 ### 3. Autoencoder reconstruction
 We train an autoencoder to reconstruct the input point cloud. The architecture of the autoencoder is inspired from Folding Net [6]. The codewords are used as features for the classification task, which can be performed using a simple MLP or SVM.
 
+For visualization purposes, we use T-SNE to reduce the dimensionality of the codewords to 2D. The following figure shows the T-SNE visualization of the codewords of the autoencoder trained on the ModelNet40 dataset:
 
+<p align="center">
+  <img src="imgs/tsne.png" width="400" title="tsne">
+</p>
 
 
 ## References

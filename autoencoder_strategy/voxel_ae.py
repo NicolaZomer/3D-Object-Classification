@@ -11,17 +11,17 @@ class voxEncoder (nn.Module):
         self.conv1 = nn.Conv3d(1, out_channels=32, kernel_size=7)
         self.bn1 = nn.BatchNorm3d(32)
         self.relu1 = nn.ReLU()
-        self.drop1 = nn.Dropout3d(p=0.3)
+        self.drop1 = nn.Dropout3d(p=0.5)
 
         self.conv2 = nn.Conv3d(32, out_channels=16, kernel_size=7)
         self.bn2 = nn.BatchNorm3d(16)
         self.relu2 = nn.ReLU()
-        self.drop2 = nn.Dropout3d(p=0.3)
+        self.drop2 = nn.Dropout3d(p=0.5)
 
         self.conv3 = nn.Conv3d(16, out_channels=8, kernel_size=7)
         self.bn3 = nn.BatchNorm3d(8)
         self.relu3 = nn.ReLU()
-        self.drop3 = nn.Dropout3d(p=0.3)
+        self.drop3 = nn.Dropout3d(p=0.5)
 
         x = torch.randn(input_shape).view(-1, 1, *input_shape)
         x = self.conv1(x)
@@ -78,19 +78,19 @@ class voxDecoder (nn.Module):
         self.unflatten = nn.Unflatten(1, (8, 14, 14, 14))
     
         self.conv1 = nn.ConvTranspose3d(8, out_channels=16, kernel_size=7)
-        self.drop1 = nn.Dropout3d(p=0.3)
+        self.drop1 = nn.Dropout3d(p=0.5)
         self.bn1 = nn.BatchNorm3d(16)
         self.relu1 = nn.ReLU()
 
         self.conv2 = nn.ConvTranspose3d(16, out_channels=32, kernel_size=7)
-        self.drop2 = nn.Dropout3d(p=0.3)
+        self.drop2 = nn.Dropout3d(p=0.5)
         self.bn2 = nn.BatchNorm3d(32)
         self.relu2 = nn.ReLU()
 
         self.conv3 = nn.ConvTranspose3d(32, out_channels=1, kernel_size=7)
-        self.drop3 = nn.Dropout3d(p=0.3)
+        self.drop3 = nn.Dropout3d(p=0.5)
         self.bn3 = nn.BatchNorm3d(1)
-        self.tanh = nn.Tanh()
+        self.relu3 = nn.ReLU()
 
 
     def forward(self, x):
@@ -117,7 +117,7 @@ class voxDecoder (nn.Module):
         # print ('conv3', x.shape)
         x = self.drop3(x)
         x = self.bn3(x)
-        x = self.tanh(x)
+        x = self.relu3(x)
         # print ('drop3', x.shape)
 
         return x

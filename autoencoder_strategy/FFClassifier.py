@@ -16,7 +16,7 @@ class FFClassifier(nn.Module):
         #lay1
         self.fc1 = nn.Linear(input_dim, 256)
         self.bn1 = nn.BatchNorm1d(256)
-        self.dropout2 = nn.Dropout(p=0.3)
+        self.dropout2 = nn.Dropout(p=0.7)
 
         #lay2
         self.fc2 = nn.Linear(256, 128)
@@ -25,11 +25,11 @@ class FFClassifier(nn.Module):
         #lay2
         self.fc2 = nn.Linear(256, 128)
         self.bn2 = nn.BatchNorm1d(128)       
-        self.dropout2 = nn.Dropout(p=0.3)
+        self.dropout2 = nn.Dropout(p=0.7)
 
         # lay3
         self.fc3 = nn.Linear(128, 64)
-        self.dropout3 = nn.Dropout(p=0.3)
+        self.dropout3 = nn.Dropout(p=0.7)
         self.fc4 = nn.Linear(64, nclasses)
 
     def forward(self, x):
@@ -47,7 +47,7 @@ class FFClassifier(nn.Module):
 
 
 class classifier ():
-    def __init__(self, input_dim=512, nclasses=40, lr=0.001, weight_decay=0.0001):
+    def __init__(self, input_dim=512, nclasses=40, lr=1e-4, weight_decay=0.0001):
 
         self.model = FFClassifier(input_dim=input_dim, nclasses=nclasses)
         self.optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=weight_decay)

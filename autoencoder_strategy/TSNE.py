@@ -40,22 +40,33 @@ def main (
     labels_test = np.load(os.path.join(data_dir, 'labels_val.npy'))
 
     # get a subset of 10 classes
-    classes = range (0, 40, 4)
+    sys.path.append('../')
+    from mapping import class2index
+
+    classes = { 'airplane',   'bookshelf',  'bowl', 'chair',
+                'flower_pot', 'guitar', 'laptop', 
+                'person', 'piano', 'sink',  }
+    classes = [class2index[c] for c in classes]
     mask = np.isin(labels_train, classes)
 
     data_train = data_train[mask]
     labels_train = labels_train[mask]
 
-    tsne = TSNE(n_components=2, verbose=1, perplexity=50, n_iter=1000)
+    tsne = TSNE(n_components=2, verbose=1, perplexity=20, n_iter=2000)
     tsne_results = tsne.fit_transform(data_train)
 
     # create cmap with 40 colors
     from matplotlib.colors import ListedColormap
-    ncolors = 40
 
     # add 10 colors from each palette
-    cmap = ListedColormap(sns.color_palette("hls", ncolors))
-
+    import matplotlib as mpl
+    colors = [
+        'red',  'magenta','green', 'orange', 'magenta','gold', 'blue', 
+        'cornflowerblue',   'blueviolet', 'magenta',
+        'orchid', 'navy', 'maroon', 'moccasin', 'indigo', 'hotpink', 'gold', 'firebrick', 'darkslategray', 
+    ]
+    ncolors = len(classes)
+    cmap = mpl.colors.ListedColormap(colors[:ncolors])
 
     print (tsne_results.shape)
     plt.scatter (tsne_results[:, 0], tsne_results[:, 1], c=labels_train, cmap=cmap)

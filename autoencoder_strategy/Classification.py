@@ -61,7 +61,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--checkpoints_path', type=str, default='../checkpoints')
 parser.add_argument('--model_name', type=str, default='foldingnet')
 parser.add_argument('--data_dir', type=str, default='../dataset/svm_dataset_fold')
-parser.add_argument('--create_dataset', type=bool, default=True)
+parser.add_argument('--create_dataset', type=bool, default=False)
 parser.add_argument('--ndata', type=int, default=-1, help='Number of data ')
 parser.add_argument('--train', type=bool, default=True, help='Train or test')
 
@@ -255,11 +255,11 @@ def main (
 
     # create a dataset/loader for the encoded states
     # convert to numpy
-    encoded_states_train = encoded_states_train.numpy()
-    encoded_states_val = encoded_states_val.numpy()
-    labels_train = labels_train.numpy()
-    labels_val = labels_val.numpy()
-    
+    encoded_states_train = np.array(encoded_states_train)
+    encoded_states_val = np.array(encoded_states_val)
+    labels_train = np.array(labels_train)
+    labels_val = np.array(labels_val)
+
     dataset_train = torch.utils.data.TensorDataset(torch.from_numpy(encoded_states_train).float(), torch.from_numpy(labels_train).long())
     dataset_val = torch.utils.data.TensorDataset(torch.from_numpy(encoded_states_val).float(), torch.from_numpy(labels_val).long())
 
