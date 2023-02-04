@@ -41,7 +41,7 @@ The architecture of PointNet is shown below:
 ### 2. VoxelNet
 Another approach is to use the voxel representation of the 3D models. We use the binvox conversion to convert the .off files into .binvox files. The architecture of VoxelNet is based on convolutional layers, as shown below:
 <p align="center">
-  <img src="imgs/vnet.png" width="1000" title="voxnet">
+  <img src="imgs/nets/vnet.png" width="1000" title="voxnet">
 </p>
 
 

@@ -33,9 +33,9 @@ parser.add_argument('--epochs', type=int, default=40, help='number of epochs to 
 parser.add_argument('--lr', type=float, default=1e-3, help='learning rate (default: 0.001)')
 parser.add_argument('--batch_size', type=int, default=64, help='batch size (default: 32)')
 parser.add_argument('--save_dir', type=str, default='checkpoints', help='directory to save checkpoints (default: checkpoints/pointnet)')
-parser.add_argument('--ndata', type=int, default=100, help='number of data points to use (default: 2000)')
+parser.add_argument('--ndata', type=int, default=4000, help='number of data points to use (default: 2000)')
 parser.add_argument('--npoints', type=int, default=4000, help='number of points in the point cloud (default: 1024)')
-parser.add_argument('--train', type=bool, default=True, help='train or test (default: True)')
+parser.add_argument('--train', type=bool, default=False, help='train or test (default: True)')
 args = parser.parse_args()
 
 
@@ -109,8 +109,7 @@ def main (
 
     elif model_name == 'res_voxnet':
         input_shape = (32, 32, 32)
-        dataset_train  = VoxelDataset('dataset/ModelNet40', 
-                                        train=True,)
+        dataset_train  = VoxelDataset('dataset/ModelNet40', train=True,)
         dataset_val    = VoxelDataset('dataset/ModelNet40', train=False)
 
         print (f"Train dataset size: {len(dataset_train)}")
@@ -155,6 +154,11 @@ def main (
         results = classifier.test(dataloader_val)
         print ("Testing done")
         print(results)
+
+        # save results in csv
+        results.to_csv(os.path.join(save_dir, 'test_results.csv'), index=False)
+
+
 
 
 if __name__ == '__main__':
