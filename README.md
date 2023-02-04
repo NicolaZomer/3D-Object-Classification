@@ -63,7 +63,7 @@ We train an autoencoder to reconstruct the input point cloud. The architecture o
 For visualization purposes, we use T-SNE to reduce the dimensionality of the codewords to 2D. The following figure shows the T-SNE visualization of the codewords of the autoencoder trained on the ModelNet40 dataset:
 
 <p align="center">
-  <img src="imgs/tsne.png" width="400" title="tsne">
+  <img src="imgs/tsne_foldingnet.png" width="400" title="tsne">
 </p>
 
 #### Training
