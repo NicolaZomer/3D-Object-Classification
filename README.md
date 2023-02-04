@@ -48,7 +48,13 @@ Another approach is to use the voxel representation of the 3D models. We use the
 #### Test
 | Accuracy | Precision | Recall | F1 |
 | --- | --- | --- | --- |
-| 0.82  |  0.70|   0.75  |  0.70 | 
+| 0.79 | 0.66 | 0.67 | 0.64 |
+
+
+#### VoxelNet with residual connections:
+| Accuracy | Precision | Recall | F1 |
+| --- | --- | --- | --- |
+| 0.83  |  0.72|   0.74  |  0.72 | 
 
 
 ### 3. Autoencoder reconstruction
