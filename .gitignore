@@ -14,7 +14,9 @@ dataset/ModelNet40.zip
 checkpoints/*
 autoencoder_strategy/FFClassifier_checkpoint/*
 autoencoder_strategy/nn_distance/*
-
+LIDAR/dataset_autoencoder_labels/*
+LIDAR/dataset-downloader-kit/*
+LIDAR/models/*
 # latex files
 *.aux
 *.bbl
