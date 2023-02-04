@@ -61,7 +61,7 @@ def main (
     # add 10 colors from each palette
     import matplotlib as mpl
     colors = [
-        'red',  'magenta','green', 'orange', 'magenta','gold', 'blue', 
+        'red',  'magenta','green', 'orange', 'cornflowerblue','gold', 'blue',  'moccasin',
         'cornflowerblue',   'blueviolet', 'magenta',
         'orchid', 'navy', 'maroon', 'moccasin', 'indigo', 'hotpink', 'gold', 'firebrick', 'darkslategray', 
     ]
@@ -69,9 +69,14 @@ def main (
     cmap = mpl.colors.ListedColormap(colors[:ncolors])
 
     print (tsne_results.shape)
-    plt.scatter (tsne_results[:, 0], tsne_results[:, 1], c=labels_train, cmap=cmap)
-    plt.title(f'TSNE on {len(classes)} classes')
-    plt.show()
+    fig, ax = plt.subplots(figsize=(8, 8))
+    ax.scatter (tsne_results[:, 0], tsne_results[:, 1], c=labels_train, cmap=cmap)
+    ax.set_title(f'TSNE ({len(classes)} classes)')
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    #save
+    fig.savefig(f'../imgs/tsne_{model_name}.pdf', dpi=300)
+
 
 if __name__ == '__main__':
     main(model_name=args.model_name)

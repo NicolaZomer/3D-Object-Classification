@@ -27,7 +27,7 @@ def config_params():
     ## dataset
     parser.add_argument('--root',help='the data path', default='dataset_final')
     parser.add_argument('--load', type=bool, default=True,help='whether to load the trained model')
-    parser.add_argument('--train_npts', type=int,  default=4000, help='the points number of each pc for training')
+    parser.add_argument('--train_npts', type=int,  default=2000, help='the points number of each pc for training')
     ## models training
     parser.add_argument('--seed', type=int, default=1234)
     parser.add_argument('--gn', action='store_true', help='whether to use group normalization')
@@ -42,6 +42,9 @@ def config_params():
     # logs
     parser.add_argument('--saved_path', default='models',help='the path to save training logs and checkpoints')
     parser.add_argument('--saved_frequency', type=int, default=1,help='the frequency to save the logs and checkpoints')
+
+    parser.add_argument('--train', type=bool, default=True, help='whether to train the model')
+
     args = parser.parse_args()
     return args
 
@@ -81,6 +84,36 @@ def test_one_epoch(test_loader, model, loss_fn):
 
     return np.mean(losses)
 
+import pandas as pd
+from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score
+def test (test_loader, model):
+    model.eval()
+    all_outputs = []
+    all_labels = []
+    with torch.no_grad():
+        for sample in tqdm(test_loader):
+            ref_cloud = sample[0].to(device)
+            label = sample[1].to(device)
+
+            out = model(ref_cloud)
+            #predictions
+            pred = nn.Softmax(dim=1)(out)
+            pred = torch.argmax(pred, dim=1)
+            
+            all_outputs.append(pred.cpu().numpy())
+            all_labels.append(label.cpu().numpy())
+
+    test_acc =  accuracy_score(np.concatenate(all_labels), np.concatenate(all_outputs))
+    recall = recall_score(np.concatenate(all_labels), np.concatenate(all_outputs), average='macro')
+    precision = precision_score(np.concatenate(all_labels), np.concatenate(all_outputs), average='macro')
+    f1 = f1_score(np.concatenate(all_labels), np.concatenate(all_outputs), average='macro')
+
+    results = pd.DataFrame()
+    results['accuracy'] = [test_acc]
+    results['recall'] = [recall]
+    results['precision'] = [precision]
+    results['f1'] = [f1]
+    return results
 
 def main():
     args = config_params()
@@ -101,7 +134,7 @@ def main():
     test_set = SELMA('dataset_autoencoder_labels', args.train_npts, False)
     train_loader = DataLoader(train_set, batch_size=args.batchsize,
                               shuffle=True, num_workers=args.num_workers)
-    test_loader = DataLoader(test_set, batch_size=args.batchsize, shuffle=False,
+    test_loader = DataLoader(test_set, batch_size=args.batchsize, shuffle=True,
                              num_workers=args.num_workers)
 
     # test dataset
@@ -119,9 +152,9 @@ def main():
     sys.path.append('networks')
     from networks.PointNet import PointNet
 
-    model = PointNet(nclasses=6)
+    model = PointNet(nclasses=6, num_point=args.train_npts)
     parameters = model.parameters()
-    optimizer =  torch.optim.Adam(parameters, lr=1e-3, weight_decay=1e-4)
+    optimizer =  torch.optim.SGD(parameters, lr=1e-3, weight_decay=1e-5)
 
 
     if len(model_paths) > 0 and args.load:
@@ -140,7 +173,6 @@ def main():
     loss_fn = torch.nn.CrossEntropyLoss()
     loss_fn = loss_fn.to(device)
    
-    test_min_loss  = float('inf')
     import pandas as pd
 
     train_loss = np.array([])
@@ -161,20 +193,30 @@ def main():
         max_epoch = args.epoches
         print ('max epoch', max_epoch)
 
-    for epoch in range(start_epoch, max_epoch):
-        print('=' * 20, epoch + 1, '=' * 20)
-        trainl = train_one_epoch(train_loader, model, loss_fn, optimizer)
-        testl = test_one_epoch(test_loader, model, loss_fn)
+    if args.train:
+        for epoch in range(start_epoch, max_epoch):
+            print('=' * 20, epoch + 1, '=' * 20)
+            trainl = train_one_epoch(train_loader, model, loss_fn, optimizer)
+            testl = test_one_epoch(test_loader, model, loss_fn)
 
-        print("epoch: {}, train loss: {}, test loss: {}".format(epoch, trainl, testl))
+            print("epoch: {}, train loss: {}, test loss: {}".format(epoch, trainl, testl))
 
-        train_loss = np.append(train_loss, trainl)
-        test_loss = np.append(test_loss, testl)
+            train_loss = np.append(train_loss, trainl)
+            test_loss = np.append(test_loss, testl)
+            
+            saved_path = os.path.join(checkpoints_path, "model_{}.pth".format(epoch))
+            torch.save(model.state_dict(), saved_path)
+            np.savetxt(os.path.join(checkpoints_path, 'results', 'train_loss.csv'), train_loss)
+            np.savetxt(os.path.join(checkpoints_path, 'results', 'test_loss.csv'), test_loss)
+
+    else:
+        print ("testing")
+        results = test(test_loader, model)
+        print (results)
+
         
-        saved_path = os.path.join(checkpoints_path, "model_{}.pth".format(epoch))
-        torch.save(model.state_dict(), saved_path)
-        np.savetxt(os.path.join(checkpoints_path, 'results', 'train_loss.csv'), train_loss)
-        np.savetxt(os.path.join(checkpoints_path, 'results', 'test_loss.csv'), test_loss)
+
+
 
 
 if __name__ == '__main__':

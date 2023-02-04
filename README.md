@@ -30,7 +30,7 @@ Moreover, we test a further approach, based on autoencoder reconstruction of the
 The architecture of PointNet is shown below:
 
 <p align="center">
-  <img src="imgs/pneth.png" width="1000" title="PointNet">
+  <img src="imgs/nets/pnet.png" width="1000" title="PointNet">
 </p>
 
 #### Test
