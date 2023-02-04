@@ -14,6 +14,14 @@ dataset/ModelNet40.zip
 checkpoints/*
 autoencoder_strategy/FFClassifier_checkpoint/*
 autoencoder_strategy/nn_distance/*
+
+# latex files
+*.aux
+*.bbl
+*.blg
+*.dvi
+*.log
+*.gz
 # Distribution / packaging
 .Python
 build/
