@@ -17,8 +17,8 @@ from torchvision import transforms
 import os
 import glob
 import pandas as pd
-
 import open3d as o3d
+
 class VoxelDataset(Dataset):
     def __init__(self, 
                 dataset_folder, 
@@ -140,7 +140,7 @@ class VoxelDataset(Dataset):
         z0 = int((z - input_size[2])/2)
 
         voxel = grid[x0:x0+input_size[0], y0:y0+input_size[1], z0:z0+input_size[2]]
-        sample = (voxels, label)
+        sample = (voxel, label)
     
         if self.transform:
             sample = self.transform(sample)

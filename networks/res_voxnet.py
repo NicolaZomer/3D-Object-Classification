@@ -11,13 +11,13 @@ class ResVoxNet(nn.Module):
         self.n_classes = nclasses
         self.input_shape = input_shape
 
-        self.conv1 = self.conv_layer(inchannel=1, outchannel=64, kernel_size=3, stride=2, padding=0)
+        self.conv1 = self.conv_layer(inchannel=1, outchannel=128, kernel_size=3, stride=2, padding=0)
         #pool
         self.pool = nn.MaxPool3d(2)
 
-        self.conv2 = self.conv_layer(inchannel=64, outchannel=64, kernel_size=1, stride=1, padding=0)
-        self.conv3 = self.conv_layer(inchannel=64, outchannel=64, kernel_size=1, stride=1, padding=0)
-        self.conv4 = self.conv_layer(inchannel=64, outchannel=64, kernel_size=1, stride=1, padding=0)
+        self.conv2 = self.conv_layer(inchannel=128, outchannel=128, kernel_size=1, stride=1, padding=0)
+        self.conv3 = self.conv_layer(inchannel=128, outchannel=128, kernel_size=1, stride=1, padding=0)
+        self.conv4 = self.conv_layer(inchannel=128, outchannel=128, kernel_size=1, stride=1, padding=0)
 
         # compute the dimension of the feature vector with a forward pass
         x = torch.autograd.Variable(torch.rand((1, 1) + input_shape))
@@ -35,10 +35,10 @@ class ResVoxNet(nn.Module):
             dim_feat *= n
 
         self.mlp = nn.Sequential(OrderedDict([
-            ('fc1', nn.Linear(dim_feat, 128)),
+            ('fc1', nn.Linear(dim_feat, 64)),
             ('relu1', nn.LeakyReLU()),
             ('drop3', nn.Dropout(p=0.6)),
-            ('fc2', nn.Linear(128, self.n_classes)),
+            ('fc2', nn.Linear(64, self.n_classes)),
         
         ]))
 

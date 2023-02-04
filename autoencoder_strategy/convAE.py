@@ -200,6 +200,10 @@ class AutoEncoder(nn.Module):
         encoded = x
         x = self.decoder(x, indices, batch_size)
         return x, encoded
+    
+    def encode(self, x, batch_size):
+        x, indices = self.encoder(x, batch_size)
+        return x
 
 if __name__ == '__main__':
 

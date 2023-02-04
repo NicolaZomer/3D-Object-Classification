@@ -66,6 +66,10 @@ class Classifier ():
                 out = self.Net(x_batch)
 
                 # Compute loss
+                # labels are int values, so we need to convert them to long
+                if label_batch.dtype in [torch.int64, torch.int32]:
+                    label_batch = label_batch.long()
+
                 loss = self.loss_fn(out, label_batch)
 
                 # Backpropagation
