@@ -51,7 +51,7 @@ class TripletCenterLoss(nn.Module):
         # compute ranking hinge loss 
         y = dist_an.data.new() 
         y.resize_as_(dist_an.data)
-        y.fill_(1)
+        y.figit stall_(1)
         y = Variable(y)
         # y_i = 1, means dist_an > dist_ap + margin will casuse loss be zero 
         loss = self.ranking_loss(dist_an, dist_ap, y)
