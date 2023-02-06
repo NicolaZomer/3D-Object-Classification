@@ -49,7 +49,8 @@ def main (
     npoints = 1024,
     train=False,
     ):
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    #device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cpu")
     save_dir = os.path.join(save_dir, model_name)
 
     ##############################

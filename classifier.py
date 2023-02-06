@@ -102,6 +102,10 @@ class Classifier ():
                     out = self.Net(x_batch)
 
                     # Compute loss cross entropy
+                    
+                    if label_batch.dtype in [torch.int64, torch.int32]:
+                        label_batch = label_batch.long()
+                        
                     loss = self.loss_fn(out, label_batch)
 
                     # Save val loss for this batch
