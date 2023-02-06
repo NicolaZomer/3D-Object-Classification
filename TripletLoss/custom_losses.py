@@ -23,12 +23,18 @@ class TripletCenterLoss(nn.Module):
     def __init__(self, margin=0, num_classes=40):
         super(TripletCenterLoss, self).__init__() 
         self.margin = margin 
-        self.ranking_loss = nn.MarginRankingLoss(margin=margin) 
-        self.centers = nn.Parameter(torch.randn(num_classes, num_classes)) 
+        self.ranking_loss = nn.MarginRankingLoss(margin=margin)
+        self.num_classes = num_classes
+         
    
     def forward(self, inputs, targets): 
-        batch_size = inputs.size(0) 
-        targets_expand = targets.view(batch_size, 1).expand(batch_size, inputs.size(1)) 
+        batch_size = inputs.size(0)
+        dim_space = inputs.size(1)
+        num_classes = self.num_classes
+        self.centers = nn.Parameter(torch.randn(num_classes, dim_space))
+        
+        targets_expand = targets.view(batch_size, 1).expand(batch_size, inputs.size(1))
+        
         centers_batch = self.centers.gather(0, targets_expand) # centers batch 
 
         # compute pairwise distances between input features and corresponding centers 
@@ -44,20 +50,22 @@ class TripletCenterLoss(nn.Module):
             dist_ap.append(dist[i][mask[i]].max()) # mask[i]: positive samples of sample i
             dist_an.append(dist[i][mask[i]==0].min()) # mask[i]==0: negative samples of sample i 
 
-        dist_ap = torch.cat(dist_ap)
-        dist_an = torch.cat(dist_an)
+        
+        
+        dist_ap = torch.stack(dist_ap)
+        dist_an = torch.stack(dist_an)
 
         # generate a new label y
         # compute ranking hinge loss 
         y = dist_an.data.new() 
         y.resize_as_(dist_an.data)
-        y.figit stall_(1)
+        y.fill_(1)
         y = Variable(y)
         # y_i = 1, means dist_an > dist_ap + margin will casuse loss be zero 
         loss = self.ranking_loss(dist_an, dist_ap, y)
 
         prec = (dist_an.data > dist_ap.data).sum() * 1. / y.size(0) # normalize data by batch size 
-        return loss, prec    
+        return loss#, prec    
     
     
 # references:

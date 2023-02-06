@@ -125,6 +125,142 @@ class Classifier ():
             
             np.save(f'{save_dir}/train_loss.npy', self.train_loss_log)
             np.save(f'{save_dir}/val_loss.npy', self.val_loss_log)
+            
+            
+            
+    def train_triplet(self,
+            train_dataloader, 
+            val_dataloader, 
+            loss_fn, 
+            epochs, 
+            optimizer,
+            save_dir='checkpoints', 
+            start_epoch=0
+            ):
+        self.optimizer = optimizer
+        self.loss_fn = loss_fn
+
+        self.train_loss_log = []
+        self.val_loss_log = []
+        
+        lambda_tcl = 0.001
+
+        # if save_dir doews not exist, create it
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+
+        # load loss log
+        if os.path.exists(f'{save_dir}/train_loss.npy'):
+            train_loss = np.load(f'{save_dir}/train_loss.npy')
+            self.train_loss_log = train_loss.tolist()
+
+        if os.path.exists(f'{save_dir}/val_loss.npy'):
+            val_loss = np.load(f'{save_dir}/val_loss.npy')
+            self.val_loss_log = val_loss.tolist()
+
+        for epoch_num in range(start_epoch, start_epoch+epochs):
+            print(f'EPOCH {epoch_num}')
+
+            ### TRAIN
+            train_loss= []
+            soft_loss = []
+            tcl_loss = []
+            
+            self.Net.train() # Training mode (e.g. enable dropout, batchnorm updates,...)
+            print ("TRAINING")
+            for sample_batched in tqdm(train_dataloader):
+                # Move data to device
+                x_batch = sample_batched[0].to(self.device)
+                label_batch = sample_batched[1].to(self.device)
+
+                # print (x_batch.shape)
+                # print (label_batch.shape)
+
+                out = self.Net(x_batch)
+
+                # Compute loss
+                # labels are int values, so we need to convert them to long
+                if label_batch.dtype in [torch.int64, torch.int32]:
+                    label_batch = label_batch.long()
+                    
+                sf_loss = self.loss_fn[0](out, label_batch)
+                soft_loss.append(sf_loss.detach().cpu().numpy())
+                
+                tripl_loss = self.loss_fn[1](out, label_batch)
+                tcl_loss.append(tripl_loss.detach().cpu().numpy())
+
+                loss = sf_loss + (lambda_tcl*tripl_loss) 
+
+                # Backpropagation
+                self.optimizer.zero_grad()
+                loss.backward()
+
+                # Update the weights
+                self.optimizer.step()
+
+                # Save train loss for this batch
+                loss_batch = loss.detach().cpu().numpy()
+                train_loss.append(loss_batch)
+        
+            # Save average train loss
+            train_loss = np.mean(train_loss)
+            
+            avg_sf_loss = np.mean(soft_loss)
+            avg_tcl_loss = np.mean(tcl_loss)
+            self.train_loss_log.append(train_loss)
+
+            # Validation
+            val_loss= []
+            val_soft_loss = []  
+            val_tcl_loss = []
+            self.Net.eval() # Evaluation mode (e.g. disable dropout, batchnorm,...)
+
+            with torch.no_grad(): # Disable gradient tracking
+                print ("TESTING")
+                for sample_batched in tqdm(val_dataloader):
+                    # Move data to device
+                    x_batch = sample_batched[0].to(self.device)
+                    label_batch = sample_batched[1].to(self.device)
+
+                    # Forward pass
+                    out = self.Net(x_batch)
+
+                    # Compute loss cross entropy
+                    
+                    if label_batch.dtype in [torch.int64, torch.int32]:
+                        label_batch = label_batch.long()
+                        
+                    sf_loss = self.loss_fn[0](out, label_batch)
+                    val_soft_loss.append(sf_loss.detach().cpu().numpy())
+                
+                    tripl_loss = self.loss_fn[1](out, label_batch)
+                    val_tcl_loss.append(tripl_loss.detach().cpu().numpy())
+
+                    loss = sf_loss + (lambda_tcl*tripl_loss) 
+
+                    # Save val loss for this batch
+                    loss_batch = loss.detach().cpu().numpy()
+                    val_loss.append(loss_batch)
+
+                # Save average validation loss
+                val_loss = np.mean(val_loss)
+                avg_val_sf_loss = np.mean(val_soft_loss)
+                avg_val_tcl_loss = np.mean(val_tcl_loss)
+                self.val_loss_log.append(val_loss)
+
+            # logs
+            print(f"Epoch {epoch_num} - Train loss: {train_loss:.4f} - Val loss: {val_loss:.4f}")
+            print(f"Epoch {epoch_num} - Train SOFTMAX: {avg_sf_loss:.4f} - Train TCL: {avg_tcl_loss:.4f}")
+            print(f"Epoch {epoch_num} - VAL SOFTMAX: {avg_val_sf_loss:.4f} - VAL TCL: {avg_val_tcl_loss:.4f}")
+            # save model
+            self.save_state_dict(f'{save_dir}/model_{epoch_num}.torch')
+            self.save_optimizer_state(f'{save_dir}/optimizer_{epoch_num}.torch')
+
+            
+            np.save(f'{save_dir}/train_loss.npy', self.train_loss_log)
+            np.save(f'{save_dir}/val_loss.npy', self.val_loss_log)
+         
+
 
     def history(self):
         return self.train_loss_log, self.val_loss_log

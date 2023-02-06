@@ -19,7 +19,8 @@ import matplotlib.pyplot as plt
 import os, glob
 from tqdm import tqdm
 
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+#DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cpu")
 
 def train_one_epoch(train_loader, model, optimizer, loss_fn, model_name):
     losses = []

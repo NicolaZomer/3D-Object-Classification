@@ -11,6 +11,13 @@ import glob
 import pandas as pd
 import open3d as o3d
 
+def rotate_point_cloud(xyz):
+    angle = np.random.choice( np.arange(-np.pi/2, np.pi/2 +  np.pi/4, np.pi/4) )       
+    R = xyz.get_rotation_matrix_from_xyz((0, 0, angle))
+
+    xyz = xyz.rotate(R, center=(0,0,0))
+    return xyz
+
 
 class PointCloudDataset(Dataset):
     def __init__(self, 
@@ -20,6 +27,7 @@ class PointCloudDataset(Dataset):
                 file_extension='.off', 
                 ndata=100,
                 npoints=10000,
+                rotation=False,
                 ):
         """
         Args:
@@ -50,6 +58,10 @@ class PointCloudDataset(Dataset):
         """
         # extension
         self.file_extension = file_extension
+        
+        self.rotation = rotation
+        
+
 
         # all classes 
         classes = os.listdir(dataset_folder)
@@ -99,6 +111,8 @@ class PointCloudDataset(Dataset):
     
     def __len__(self):
         return len(self.paths)
+    
+    
 
     def __getitem__(self, idx):
         path = self.paths[idx]
@@ -107,6 +121,9 @@ class PointCloudDataset(Dataset):
         # parsing is specific to the file extension
         if self.file_extension == '.off':
             x = o3d.io.read_triangle_mesh(path)
+            if self.rotation:
+                x = rotate_point_cloud(x)
+                
             x = np.asarray(x.vertices)
             # rehsape to num_pointsx3
             x = np.reshape(x, (-1, 3))
@@ -123,9 +140,14 @@ class PointCloudDataset(Dataset):
         np.random.shuffle(idx)
         x = x[idx[:self.npoints], :]
         
+        
+        
         # torch
         x = torch.from_numpy(x).float()
         sample = (x, label)
         if self.transform:
             sample = self.transform(sample)
         return sample
+    
+    
+    
