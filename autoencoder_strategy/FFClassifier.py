@@ -18,9 +18,6 @@ class FFClassifier(nn.Module):
         self.bn1 = nn.BatchNorm1d(256)
         self.dropout2 = nn.Dropout(p=0.7)
 
-        #lay2
-        self.fc2 = nn.Linear(256, 128)
-
 
         #lay2
         self.fc2 = nn.Linear(256, 128)
@@ -30,6 +27,8 @@ class FFClassifier(nn.Module):
         # lay3
         self.fc3 = nn.Linear(128, 64)
         self.dropout3 = nn.Dropout(p=0.7)
+
+        #lay4
         self.fc4 = nn.Linear(64, nclasses)
 
     def forward(self, x):

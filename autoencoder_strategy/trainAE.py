@@ -68,12 +68,12 @@ def test_one_epoch(test_loader, model, loss_fn, model_name):
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--batch_size', type=int, default=32)
-parser.add_argument('--epochs', type=int, default=30, help='Number of epochs')
+parser.add_argument('--epochs', type=int, default=100, help='Number of epochs')
 parser.add_argument('--checkpoints_path', type=str, default='../checkpoints')
-parser.add_argument('--ndata', type=int, default=100, help='Number of data ')
+parser.add_argument('--ndata', type=int, default=4000, help='Number of data ')
 parser.add_argument('--npoints', type=int, default=4000, help='Number of points per cloud')
-parser.add_argument('--train', type=bool, default=True, help='Train or test')
-parser.add_argument('--model_name', type=str , default='convAE', help='foldingnet or vox', choices=['foldingnet', 'vox', 'convAE'])
+parser.add_argument('--train', type=bool, default=False, help='Train or test')
+parser.add_argument('--model_name', type=str , default='vox', help='foldingnet or vox', choices=['foldingnet', 'vox', 'convAE'])
 
 args = parser.parse_args()
 
@@ -245,7 +245,7 @@ def main(
 
     else:
         print ('=' * 20, 'TESTING', '=' * 20)
-        loss = test_one_epoch(test_loader, model)
+        loss = test_one_epoch(test_loader, model, loss_fn, model_name)
         print('Test loss: {:.4f}'.format(loss))
 
 
