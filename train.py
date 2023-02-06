@@ -28,14 +28,15 @@ import os
 # 4000 dati allenati con batch 64 e 1e-3
 
 parser = argparse.ArgumentParser(description='training')
-parser.add_argument('--model_name', type=str, default='voxnet', help='model name (default: pointnet)', choices=['pointnet', 'voxnet', 'res_voxnet'])
-parser.add_argument('--epochs', type=int, default=40, help='number of epochs to train (default: 10)')
+parser.add_argument('--model_name', type=str, default='pointnet', help='model name (default: pointnet)', choices=['pointnet', 'voxnet', 'res_voxnet'])
+parser.add_argument('--epochs', type=int, default=100, help='number of epochs to train (default: 10)')
 parser.add_argument('--lr', type=float, default=1e-3, help='learning rate (default: 0.001)')
 parser.add_argument('--batch_size', type=int, default=64, help='batch size (default: 32)')
 parser.add_argument('--save_dir', type=str, default='checkpoints', help='directory to save checkpoints (default: checkpoints/pointnet)')
 parser.add_argument('--ndata', type=int, default=4000, help='number of data points to use (default: 2000)')
-parser.add_argument('--npoints', type=int, default=4000, help='number of points in the point cloud (default: 1024)')
-parser.add_argument('--train', type=bool, default=False, help='train or test (default: True)')
+parser.add_argument('--npoints', type=int, default=10000, help='number of points in the point cloud (default: 1024)')
+parser.add_argument('--train', type=bool, default=True, help='train or test (default: True)')
+parser.add_argument('--rotation', type=bool, default=True, help='augment samples using random rotations (default: False)')
 args = parser.parse_args()
 
 
@@ -48,6 +49,7 @@ def main (
     ndata=4000,
     npoints = 1024,
     train=False,
+    rotation=False
     ):
     #device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     device = torch.device("cpu")
@@ -63,7 +65,8 @@ def main (
                                             train=True, 
                                             ndata=ndata, 
                                             file_extension='.txt', 
-                                            npoints=npoints
+                                            npoints=npoints,
+                                            rotation=rotation
                                         )
         if train: test_data = int(ndata/20)
         else: test_data = -1
@@ -71,7 +74,8 @@ def main (
                                             train=False, 
                                             ndata=test_data,
                                             file_extension='.txt', 
-                                            npoints=npoints
+                                            npoints=npoints,
+                                            rotation=False
                                         )
 
         print (f"Train dataset size: {len(dataset_train)}")
