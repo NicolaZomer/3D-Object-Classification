@@ -28,7 +28,7 @@ import os
 # 4000 dati allenati con batch 64 e 1e-3
 
 parser = argparse.ArgumentParser(description='training')
-parser.add_argument('--model_name', type=str, default='res_voxnet', help='model name (default: pointnet)', choices=['pointnet', 'voxnet', 'res_voxnet'])
+parser.add_argument('--model_name', type=str, default='voxnet', help='model name (default: pointnet)', choices=['pointnet', 'voxnet', 'res_voxnet'])
 parser.add_argument('--epochs', type=int, default=40, help='number of epochs to train (default: 10)')
 parser.add_argument('--lr', type=float, default=1e-3, help='learning rate (default: 0.001)')
 parser.add_argument('--batch_size', type=int, default=64, help='batch size (default: 32)')
@@ -158,6 +158,21 @@ def main (
 
         # save results in csv
         results.to_csv(os.path.join(save_dir, 'test_results.csv'), index=False)
+
+        # # probability distributions 2d histplot
+        # probs, labels = classifier.get_prob_distribution(dataloader_val)
+        # probs = probs.cpu().numpy()
+        # labels = labels.cpu().numpy()
+        
+        # # # plot 2d histogram
+        # fig, ax = plt.subplots()
+        # import seaborn as sns
+        # sns.clustermap(probs)
+        # ax.set_xlabel('Probability')
+        # ax.set_ylabel('Label')
+        # ax.set_title('Probability distribution')
+        
+        plt.show()
 
 
 
