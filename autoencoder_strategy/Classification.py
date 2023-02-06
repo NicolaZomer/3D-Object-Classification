@@ -59,8 +59,8 @@ def create_encoded_states(model, dataset):
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--checkpoints_path', type=str, default='../checkpoints')
-parser.add_argument('--model_name', type=str, default='foldingnet')
-parser.add_argument('--data_dir', type=str, default='../dataset/svm_dataset_fold')
+parser.add_argument('--model_name', type=str, default='vox')
+parser.add_argument('--data_dir', type=str, default='../dataset')
 parser.add_argument('--create_dataset', type=bool, default=False)
 parser.add_argument('--ndata', type=int, default=-1, help='Number of data ')
 parser.add_argument('--train', type=bool, default=True, help='Train or test')
@@ -74,6 +74,9 @@ def main (
     train: bool = True,
     ):
     import numpy as np
+
+    # data_dir
+    data_dir = os.path.join(data_dir, model_name)
 
     checkpoints_path  = os.path.join(checkpoints_path, model_name)
     if create_dataset:
@@ -206,7 +209,7 @@ def main (
         print ('='*20, 'TRAINING SVM CLASSIFIER', '='*20)
 
         # if best params file exists, load it
-        best_params_file = os.path.join('params', 'SVMbest_params.txt')
+        best_params_file = os.path.join('params', model_name+'_SVMbest_params.txt')
         if os.path.exists(best_params_file):
             best_params = {}
             with open(best_params_file, 'r') as f:
@@ -226,7 +229,7 @@ def main (
                         'kernel': ['rbf', 'poly', 'sigmoid']}
 
             from sklearn.model_selection import GridSearchCV
-            grid = GridSearchCV(SVC(),param_grid,refit=True,verbose=2)
+            grid = GridSearchCV(SVC(),param_grid,refit=True,verbose=2, cv=5)
             grid.fit(encoded_states_train, labels_train)
             print('best params', grid.best_params_)
             print('best estimator', grid.best_estimator_)

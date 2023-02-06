@@ -405,3 +405,24 @@ class Classifier ():
         results['precision'] = [precision]
         results['f1'] = [f1]
         return results
+
+
+    def get_prob_distribution (self, test_dataloader):
+        all_inputs = []
+        all_outputs = []
+        all_labels = []
+        self.Net.eval()
+        with torch.no_grad():
+            for sample_batched in tqdm(test_dataloader):
+                x_batch = sample_batched[0].to(self.device)
+                label_batch = sample_batched[1].to(self.device)
+                out = self.Net(x_batch)
+                all_inputs.append(x_batch)
+                all_outputs.append(out)
+                all_labels.append(label_batch)
+
+        all_labels = torch.cat(all_labels)
+        all_outputs = torch.cat(all_outputs)
+    
+        probs = torch.nn.functional.softmax(all_outputs, dim=1)
+        return probs, all_labels
