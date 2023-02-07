@@ -129,6 +129,7 @@ class Classifier ():
             
             
     def train_triplet(self,
+            classifier_model, 
             train_dataloader, 
             val_dataloader, 
             loss_fn, 
@@ -144,6 +145,9 @@ class Classifier ():
         self.val_loss_log = []
         
         lambda_tcl = 0.001
+                
+        self.Net_cls = classifier_model
+        self.Net_cls.to(self.device)
 
         # if save_dir doews not exist, create it
         if not os.path.exists(save_dir):
@@ -176,19 +180,28 @@ class Classifier ():
                 # print (x_batch.shape)
                 # print (label_batch.shape)
 
-                out = self.Net(x_batch)
+                out_feat = self.Net(x_batch)
 
-                # Compute loss
+                # Compute tcl loss
                 # labels are int values, so we need to convert them to long
                 if label_batch.dtype in [torch.int64, torch.int32]:
                     label_batch = label_batch.long()
-                    
+                
+                tripl_loss = self.loss_fn[1](out_feat, label_batch)
+                tcl_loss.append(tripl_loss.detach().cpu().numpy())
+                
+                # Classifier and compute cross entropy loss
+                
+                
+                out = nn.ReLU()(out_feat)
+                
+                out = self.Net_cls(out)
+                
+                
                 sf_loss = self.loss_fn[0](out, label_batch)
                 soft_loss.append(sf_loss.detach().cpu().numpy())
                 
-                tripl_loss = self.loss_fn[1](out, label_batch)
-                tcl_loss.append(tripl_loss.detach().cpu().numpy())
-
+                # Final loss
                 loss = sf_loss + (lambda_tcl*tripl_loss) 
 
                 # Backpropagation
@@ -223,14 +236,17 @@ class Classifier ():
                     label_batch = sample_batched[1].to(self.device)
 
                     # Forward pass
-                    out = self.Net(x_batch)
+                    out_feat = self.Net(x_batch)
+                    
+                    out = nn.ReLu()(out_feat)
+                    out = self.Net_cls(out)
 
                     # Compute loss cross entropy
                     
                     if label_batch.dtype in [torch.int64, torch.int32]:
                         label_batch = label_batch.long()
                         
-                    sf_loss = self.loss_fn[0](out, label_batch)
+                    sf_loss = self.loss_fn[0](out_feat, label_batch)
                     val_soft_loss.append(sf_loss.detach().cpu().numpy())
                 
                     tripl_loss = self.loss_fn[1](out, label_batch)
@@ -255,6 +271,15 @@ class Classifier ():
             # save model
             self.save_state_dict(f'{save_dir}/model_{epoch_num}.torch')
             self.save_optimizer_state(f'{save_dir}/optimizer_{epoch_num}.torch')
+            
+            # save lin classifier
+            path = f'{save_dir}/model_cls_{epoch_num}.torch'
+            if path.split('.')[-1] != 'torch':
+                path = path + '.torch'
+                
+            print (f"Saving model to {path}")
+            net_cls_state_dict = self.Net_cls.state_dict()
+            torch.save(net_cls_state_dict, path)
 
             
             np.save(f'{save_dir}/train_loss.npy', self.train_loss_log)

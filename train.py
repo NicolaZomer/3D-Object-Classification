@@ -61,19 +61,19 @@ def main (
     print (f"Loading model {model_name}...")
     if model_name == 'pointnet':
 
-        dataset_train  = PointCloudDataset('dataset/modelnet40_normal_resampled', 
+        dataset_train  = PointCloudDataset('dataset/ModelNet40', 
                                             train=True, 
                                             ndata=ndata, 
-                                            file_extension='.txt', 
+                                            file_extension='.off', 
                                             npoints=npoints,
                                             rotation=rotation
                                         )
         if train: test_data = int(ndata/20)
         else: test_data = -1
-        dataset_val    = PointCloudDataset('dataset/modelnet40_normal_resampled', 
+        dataset_val    = PointCloudDataset('dataset/ModelNet40', 
                                             train=False, 
                                             ndata=test_data,
-                                            file_extension='.txt', 
+                                            file_extension='.off', 
                                             npoints=npoints,
                                             rotation=False
                                         )
@@ -152,7 +152,8 @@ def main (
 
     if train:
         print ("Starting training")
-        classifier.train(dataloader_train, dataloader_val, epochs=epochs, optimizer=optimizer, loss_fn=loss_fn, save_dir=save_dir, start_epoch=epoches_done+1)
+        classifier.train(dataloader_train, dataloader_val, epochs=epochs, optimizer=optimizer, loss_fn=loss_fn, 
+                         save_dir=save_dir, start_epoch=epoches_done+1)
         print ("Training done")
     else:
         print ("Starting testing")

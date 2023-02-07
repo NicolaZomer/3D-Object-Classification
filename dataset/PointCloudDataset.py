@@ -11,13 +11,24 @@ import glob
 import pandas as pd
 import open3d as o3d
 
-def rotate_point_cloud(xyz):
+def rotate_mesh(xyz):
     angle = np.random.choice( np.arange(-np.pi/2, np.pi/2 +  np.pi/4, np.pi/4) )       
     R = xyz.get_rotation_matrix_from_xyz((0, 0, angle))
 
     xyz = xyz.rotate(R, center=(0,0,0))
     return xyz
 
+
+def Rz(theta):
+  return np.matrix([[ np.cos(theta), -np.sin(theta), 0 ],
+                   [ np.sin(theta), np.cos(theta) , 0 ],
+                   [ 0           , 0            , 1 ]])
+  
+def rotate_txt(xyz):
+    angle = np.random.choice( np.arange(-np.pi/2, np.pi/2 +  np.pi/4, np.pi/4) )
+    R = Rz(angle)
+    xyz = xyz.dot(R)
+    return xyz
 
 class PointCloudDataset(Dataset):
     def __init__(self, 
@@ -120,9 +131,11 @@ class PointCloudDataset(Dataset):
 
         # parsing is specific to the file extension
         if self.file_extension == '.off':
+            print(path)
             x = o3d.io.read_triangle_mesh(path)
             if self.rotation:
-                x = rotate_point_cloud(x)
+                
+                x = rotate_mesh(x)
                 
             x = np.asarray(x.vertices)
             # rehsape to num_pointsx3
@@ -134,7 +147,10 @@ class PointCloudDataset(Dataset):
             x = x[:, :3]
             # rehsape to num_pointsx3
             x = np.reshape(x, (-1, 3))
-
+            
+            if self.rotation:
+                x = rotate_txt(x)
+            
         # get npoints shuffle
         idx = np.arange(x.shape[0])
         np.random.shuffle(idx)

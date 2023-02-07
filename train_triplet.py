@@ -21,7 +21,7 @@ from classifier import Classifier
 #from networks.voxnet import VoxNet
 #from networks.res_voxnet import ResVoxNet
 
-from TripletLoss.tripletnet import TripletNet
+from TripletLoss.tripletnet import TripletNet, LinClassifier, WholeNet
 from TripletLoss.custom_losses import TripletCenterLoss
 
 
@@ -91,8 +91,10 @@ def main (
         dataloader_train = DataLoader(dataset_train, batch_size=batch_size, shuffle=True, num_workers=4)
         dataloader_val = DataLoader(dataset_val, batch_size=32, shuffle=True)
 
-        Net = TripletNet(nclasses=40)
-        parameters = Net.parameters()
+        Net_tcl = TripletNet()
+        Net_cls = LinClassifier(nfeatures=256, nclasses=40)
+                
+        parameters = Net_tcl.parameters()
         optimizer =  optim.SGD(parameters, lr=5e-4, weight_decay=1e-5)
 
 
@@ -105,28 +107,40 @@ def main (
     if len(models_saved) > 0:
         # get most recent model
         epoches_done = max([int(model.split('_')[-1].split('.')[0]) for model in models_saved])
-        model_path = os.path.join(save_dir, f'model_{epoches_done}.torch')
-        print(f"Loading model from {model_path}")
-        Net.load_state_dict(torch.load(model_path))
+        model_tcl_path = os.path.join(save_dir, f'model_{epoches_done}.torch')
+        print(f"Loading model from {model_tcl_path}")
+        Net_tcl.load_state_dict(torch.load(model_tcl_path))
+        
+        model_cls_path = os.path.join(save_dir, f'model_cls_{epoches_done}.torch')
+        print(f"Loading model from {model_cls_path}")
+        Net_cls.load_state_dict(torch.load(model_cls_path))
+        
     else:
         epoches_done = 0
 
+    # move models to device
+    Net_tcl.to(device)
+    Net_cls.to(device)
+    features_extractor = Classifier(Net_tcl, device=device)
 
-    # move model to device
-    Net.to(device)
-    classifier = Classifier(Net, device=device)
-    
+        
+
     #LOSS
     loss_cls = nn.CrossEntropyLoss()
     loss_tcl = TripletCenterLoss(margin=5)
 
     if train:
         print ("Starting training")
-        classifier.train_triplet(dataloader_train, dataloader_val, epochs=epochs, optimizer=optimizer, loss_fn = [loss_cls, loss_tcl],
-                         save_dir=save_dir, start_epoch=epoches_done+1)
+        features_extractor.train_triplet(Net_cls, dataloader_train, dataloader_val, epochs=epochs, optimizer=optimizer,
+                                         loss_fn = [loss_cls, loss_tcl], save_dir=save_dir, start_epoch=epoches_done+1)
         print ("Training done")
     else:
         print ("Starting testing")
+        # whole net
+        Net_whole = WholeNet(Net_tcl, Net_cls)
+        Net_whole.to(device)    
+        classifier = Classifier(Net_whole, device=device)
+        
         results = classifier.test(dataloader_val)
         print ("Testing done")
         print(results)

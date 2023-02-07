@@ -13,12 +13,62 @@ import torch.nn.functional as F
 
 from custom_losses import TripletCenterLoss
 
+class LinClassifier(nn.Module):
+    def __init__ (self, nfeatures, nclasses):
+        super(LinClassifier, self).__init__()
+        self.num_classes  = nclasses
+        self.num_features = nfeatures
+        
+        self.fc3 = self.fully_connected(self.num_features, self.num_classes, activation_fn=None, bn=False, name='fc3')
+        
+    def fully_connected(self,
+            input_size,
+            output_size,
+            activation_fn=nn.ReLU(),
+            bn=False,
+            name='fully_connected'):
+        """ Fully connected layer with non-linear operation.
 
-class TripletNet (nn.Module):
+        """
+
+        # create sequential model
+        model = nn.Sequential()
+
+        # add fully connected layer
+        model.add_module(name+'fc', nn.Linear(input_size, output_size))
+        if activation_fn is not None: model.add_module('activation_fn', activation_fn)
+
+        return model
     
-    def __init__ (self, nclasses, num_point=10000):
+    def forward(self, x):
+        """ Classification TripletNet, input is BxNfeatures=Bx256, output Bx40
+    
+        """
+        verbose = False
+
+        num_features = x.shape[1] # number of features
+        batch_size = x.shape[0] # batch size
+
+        num_in_channels = 1 # number of input channels
+
+        if verbose:
+            print ('num_features: ', num_features)
+            print ('batch_size: ', batch_size)
+            print ('num_in_channels: ', num_in_channels)
+
+        # unsqueeze to add channel dimension
+        #x = torch.unsqueeze(x, dim=1)# batch_size x 1 x num_features the second dimension is the channel dimension
+
+        x = self.fc3(x)
+
+        return x        
+
+
+class TripletNet(nn.Module):
+    
+    def __init__ (self, nfeatures=256, num_point=10000):
         super(TripletNet, self).__init__()
-        self.num_classes = nclasses
+        self.num_features = nfeatures
         
         self.loss = TripletCenterLoss()
 
@@ -32,14 +82,13 @@ class TripletNet (nn.Module):
         self.fc1 = self.fully_connected(1024, 512, bn=False, name='fc1')
         
         self.dropout = nn.Dropout(p=0.6)
-        self.fc2 = self.fully_connected(512, 256, bn=False, name='fc2')
+        self.fc2 = self.fully_connected(512, self.num_features, bn=False, activation_fn=None, name='fc2')
+        
         
                 
         #self.fc3 = self.fully_connected(256, self.num_classes, activation_fn=None, bn=False, name='fc3')
+        # self.custlayer = self.norm_l2_layer(self.fc3)
         
-        #self.custlayer = self.norm_l2_layer(self.fc3)
-        
-
     def conv2D(self, 
             num_in_channels,
             num_output_channels,
@@ -81,13 +130,11 @@ class TripletNet (nn.Module):
         if activation_fn is not None: model.add_module('activation_fn', activation_fn)
 
         return model
-
     
     
     def get_loss(self, input, output):
 
         return self.loss(input, output)
-
 
     def forward(self, x):
         """ Classification TripletNet, input is BxNx3, output Bx40 
@@ -133,6 +180,24 @@ class TripletNet (nn.Module):
         x = F.normalize(x, p=2, dim=1)
 
         return x
+
+
+class WholeNet(nn.Module):
+    def __init__(self, modelA, modelB):
+        '''
+        modelA: features extractor
+        modelB: linear classifier
+        '''
+        super(WholeNet, self).__init__()
+        self.modelA = modelA
+        self.modelB = modelB
+        
+    def forward(self, x):
+        x = self.modelA(x)
+        x = nn.ReLU()(x) # relu
+        x = self.modelB(x)
+        return x
+
 
 if __name__ == '__main__':
 
