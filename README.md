@@ -74,7 +74,7 @@ The voxel-based autoencoder is a simple 3D CNN, with the same architecture of th
 The results of the autoencoder are shown in the following table:
 
 <p align="center">
-  <img src="imgs/results/unsupervised.png" width="500" title="results">
+  <img src="imgs/results/unsupervised.png" width="700" title="results">
 </p>
 
 
