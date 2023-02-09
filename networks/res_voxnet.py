@@ -80,11 +80,6 @@ if __name__ == "__main__":
     data = data.unsqueeze(0)
 
     voxnet = ResVoxNet(input_shape=(32, 32, 32))
-    a = voxnet(data)
-    print(a)
-
-    # use loss function
-    criterion = nn.CrossEntropyLoss()
-    target = torch.LongTensor([1])
-    loss = criterion(a, target)
-    print(loss)
+    sys.path.append('../')
+    from utils import count_parameters
+    count_parameters(voxnet, data)

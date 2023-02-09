@@ -141,9 +141,45 @@ class voxAutoEncoder (nn.Module):
 
 
 if __name__ == '__main__':
+
     data = torch.randn((1, 1, 32, 32, 32))
     model = voxAutoEncoder()
-    print (model(data).shape)
+
+    flops = 0 
+    hooks = [] 
+    
+    def count_flops(m, i, o): 
+        global flops 
+        x = i[0] 
+        flops += (2 * x.nelement() - 1) * m.weight.nelement() 
+    
+    for name, module in model.named_modules(): 
+        if isinstance(module, nn.Conv3d): 
+            hooks.append(module.register_forward_hook(count_flops))
+        if isinstance(module, nn.Linear): 
+            hooks.append(module.register_forward_hook(count_flops))
+        if isinstance(module, nn.ConvTranspose3d): 
+            hooks.append(module.register_forward_hook(count_flops))
+        if isinstance(module, nn.BatchNorm3d): 
+            hooks.append(module.register_forward_hook(count_flops))
+        if isinstance(module, nn.Conv2d):
+            hooks.append(module.register_forward_hook(count_flops))
+        if isinstance(module, nn.ConvTranspose2d):
+            hooks.append(module.register_forward_hook(count_flops))
+        if isinstance(module, nn.BatchNorm2d):
+            hooks.append(module.register_forward_hook(count_flops))
+        if isinstance(module, nn.MaxPool2d):
+            hooks.append(module.register_forward_hook(count_flops))
+        if isinstance(module, nn.MaxPool3d):
+            hooks.append(module.register_forward_hook(count_flops))
+
+    
+    with torch.no_grad(): 
+        model(data) 
+    for hook in hooks: 
+        hook.remove() 
+    print(f"FLOPs: {flops/10**9}")
+
     
 
 

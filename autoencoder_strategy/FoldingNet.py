@@ -121,3 +121,11 @@ class FoldNet(nn.Module):
     def get_loss(self, input, output):
 
         return self.loss(input, output)
+
+
+if __name__ == '__main__':
+    input = torch.rand(1, 4000, 3)
+    model = FoldNet(4000)
+    sys.path.append('../')
+    from utils import count_parameters
+    count_parameters(model, input)

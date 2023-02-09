@@ -127,35 +127,41 @@ if __name__ == '__main__':
     # load a real point
     import open3d as o3d
 
-    path = '../dataset/ModelNet40/airplane/test/airplane_0627.off'
-    x = o3d.io.read_triangle_mesh(path)
-    x = np.asarray(x.vertices)
-    # rehsape to num_pointsx3
-    x = np.reshape(x, (-1, 3))
-    print (x.shape)
+    # path = '../dataset/ModelNet40/airplane/test/airplane_0627.off'
+    # x = o3d.io.read_triangle_mesh(path)
+    # x = np.asarray(x.vertices)
+    # # rehsape to num_pointsx3
+    # x = np.reshape(x, (-1, 3))
+    # print (x.shape)
 
-    # torch
-    x = torch.from_numpy(x).float()
-    # add batch dimension
-    x = torch.unsqueeze(x, 0)
+    # # torch
+    # x = torch.from_numpy(x).float()
+    # # add batch dimension
+    # x = torch.unsqueeze(x, 0)
+
+    sys.path.append('../')
+    from utils import count_parameters
+
+    x = torch.rand(1, 4000, 3)
     print (x.shape)
 
     model = PointNet(nclasses=40).float()
 
-    # print parameters
-    for name, param in model.named_parameters():
-        print (name, param.shape)
+    count_parameters (model, x)
+    # # print parameters
+    # for name, param in model.named_parameters():
+    #     print (name, param.shape)
 
-    # print net
-    print (model)
+    # # print net
+    # print (model)
 
-    output = model(x)
-    print(output)
+    # output = model(x)
+    # print(output)
 
-    # check normalisation
-    print (torch.sum(output, dim=1))
+    # # check normalisation
+    # print (torch.sum(output, dim=1))
 
-    # check prediction
-    print (torch.argmax(output, dim=1))
+    # # check prediction
+    # print (torch.argmax(output, dim=1))
 
 
