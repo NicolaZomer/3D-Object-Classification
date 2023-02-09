@@ -18,7 +18,6 @@ sns.set_theme(palette='Dark2', style='whitegrid', font_scale=1.5)
 
 from sklearn.manifold import TSNE
 
-
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--model_name', type=str, default='foldingnet')
@@ -29,7 +28,7 @@ def main (
     ):
 
     if model_name == 'foldingnet':
-        data_dir = '../dataset/svm_dataset_fold'
+        data_dir = '../dataset/svm_dataset_foldingnet'
     elif model_name == 'vox':
         data_dir = '../dataset/svm_dataset_vox'
 
@@ -41,19 +40,23 @@ def main (
 
     # get a subset of 10 classes
     sys.path.append('../')
-    from mapping import class2index
+    from mapping import class2index, index2class
 
-    classes = { 'airplane',   'bookshelf',  'bowl', 'chair',
-                'flower_pot', 'guitar', 'laptop', 
-                'person', 'piano', 'sink',  }
+    classes = { 'airplane',   'bowl', 'chair', 'desk', 'table', 'guitar', 'car',
+                'flower_pot', 'laptop', 
+                 'piano',  }
+
     classes = [class2index[c] for c in classes]
     mask = np.isin(labels_train, classes)
 
     data_train = data_train[mask]
     labels_train = labels_train[mask]
+    label_classes = [index2class[l] for l in labels_train]
 
-    tsne = TSNE(n_components=2, verbose=1, perplexity=20, n_iter=2000)
+    tsne = TSNE(n_components=2, verbose=1, perplexity=40, n_iter=2000)
     tsne_results = tsne.fit_transform(data_train)
+    import pandas as pd
+    results = pd.DataFrame( {'x': tsne_results[:, 0], 'y': tsne_results[:, 1], 'label': label_classes} )
 
     # create cmap with 40 colors
     from matplotlib.colors import ListedColormap
@@ -61,21 +64,24 @@ def main (
     # add 10 colors from each palette
     import matplotlib as mpl
     colors = [
-        'red',  'magenta','green', 'orange', 'cornflowerblue','gold', 'blue',  'moccasin',
-        'cornflowerblue',   'blueviolet', 'magenta',
-        'orchid', 'navy', 'maroon', 'moccasin', 'indigo', 'hotpink', 'gold', 'firebrick', 'darkslategray', 
+        'red',  'magenta','green', 'orange', 'gold', 'blue',  'moccasin',
+        'cornflowerblue',   'blueviolet', 'firebrick',
+        'orchid', 'navy', 'maroon', 'moccasin', 'indigo', 'hotpink', 'gold',  'darkslategray', 
     ]
     ncolors = len(classes)
     cmap = mpl.colors.ListedColormap(colors[:ncolors])
+    cmap = sns.set_palette(sns.color_palette(colors))
 
     print (tsne_results.shape)
-    fig, ax = plt.subplots(figsize=(8, 8))
-    ax.scatter (tsne_results[:, 0], tsne_results[:, 1], c=labels_train, cmap=cmap)
-    ax.set_title(f'TSNE ({len(classes)} classes)')
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
+    fig, ax = plt.subplots(figsize=(6, 6))
+    # ax.scatter (tsne_results[:, 0], tsne_results[:, 1], c=labels_train, cmap=cmap,
+    sns.scatterplot(data=results, x='x', y='y', hue='label',ax=ax, s=80, palette=cmap,  linewidth=0.3)
+    ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+    # ax.set_title(f'TSNE')
+    ax.set_xlabel('encoded var. 1')
+    ax.set_ylabel('encoded var. 2')
     #save
-    fig.savefig(f'../imgs/tsne_{model_name}.pdf', dpi=300)
+    fig.savefig(f'../imgs/tsne_{model_name}.pdf', dpi=300, bbox_inches='tight')
 
 
 if __name__ == '__main__':

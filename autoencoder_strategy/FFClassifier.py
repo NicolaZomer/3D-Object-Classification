@@ -46,14 +46,14 @@ class FFClassifier(nn.Module):
 
 
 class classifier ():
-    def __init__(self, input_dim=512, nclasses=40, lr=1e-4, weight_decay=0.0001):
+    def __init__(self, input_dim=512, nclasses=40, lr=1e-4, weight_decay=0.0001, save_dir='FFClassifier_checkpoint'):
 
         self.model = FFClassifier(input_dim=input_dim, nclasses=nclasses)
         self.optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=weight_decay)
         self.loss = nn.CrossEntropyLoss()
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)
-        self.save_dir = 'FFClassifier_checkpoint'
+        self.save_dir = save_dir
 
         self.train_loss = []
         self.val_loss = []

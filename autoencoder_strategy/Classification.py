@@ -60,8 +60,8 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--checkpoints_path', type=str, default='../checkpoints')
 parser.add_argument('--model_name', type=str, default='vox')
-parser.add_argument('--data_dir', type=str, default='../dataset')
-parser.add_argument('--create_dataset', type=bool, default=False)
+parser.add_argument('--data_dir', type=str, default='../dataset/svm_dataset')
+parser.add_argument('--create_dataset', type=bool, default=False, help='Create dataset or not')
 parser.add_argument('--ndata', type=int, default=-1, help='Number of data ')
 parser.add_argument('--train', type=bool, default=True, help='Train or test')
 
@@ -76,7 +76,7 @@ def main (
     import numpy as np
 
     # data_dir
-    data_dir = os.path.join(data_dir, model_name)
+    data_dir = data_dir + "_" + model_name
 
     checkpoints_path  = os.path.join(checkpoints_path, model_name)
     if create_dataset:
@@ -201,7 +201,7 @@ def main (
     #############################
 
     ############# SVM #############
-    SVM = True
+    SVM = False
     if SVM:
         from sklearn.svm import SVC
         from sklearn.neural_network import MLPClassifier
@@ -220,13 +220,13 @@ def main (
                         param = param.split(':')
                         best_params[param[0]] = float(param[1]) if param[1].replace('.', '').isnumeric() else param[1]
             print ('best params', best_params)
-            clf = SVC(**best_params)
+            clf = SVC(**best_params,  verbose=True)
         else:
             print ("doing grid search")
             # grid search
-            param_grid = {'C': [0.1,1, 10, 100], 
+            param_grid = {'C': [0.1,1, ], 
                         'gamma': [1,0.1,0.01,0.001],
-                        'kernel': ['rbf', 'poly', 'sigmoid']}
+                        'kernel': ['rbf', 'poly', 'sigmoid', 'linear']}
 
             from sklearn.model_selection import GridSearchCV
             grid = GridSearchCV(SVC(),param_grid,refit=True,verbose=2, cv=5)
@@ -237,7 +237,7 @@ def main (
             # save best params
             if not os.path.exists('params'):
                 os.makedirs('params')
-            with open(os.path.join('params', 'SVMbest_params.txt'), 'w') as f:
+            with open(os.path.join('params', model_name+'SVMbest_params.txt'), 'w') as f:
                 f.write(str(grid.best_params_))
 
             clf = grid.best_estimator_
@@ -263,13 +263,28 @@ def main (
     labels_train = np.array(labels_train)
     labels_val = np.array(labels_val)
 
+    unique_labels = np.unique(labels_train)
+    # sort labels
+    unique_labels = np.sort(unique_labels)
+    mapping = {}
+    for i in range(len(unique_labels)):
+        mapping[unique_labels[i]] = i #old label -> new label
+        
+    # map labels
+    for i in range(len(labels_train)):
+        labels_train[i] = mapping[labels_train[i]]
+    for i in range(len(labels_val)):
+        labels_val[i] = mapping[labels_val[i]]
+
     dataset_train = torch.utils.data.TensorDataset(torch.from_numpy(encoded_states_train).float(), torch.from_numpy(labels_train).long())
     dataset_val = torch.utils.data.TensorDataset(torch.from_numpy(encoded_states_val).float(), torch.from_numpy(labels_val).long())
 
     train_loader = torch.utils.data.DataLoader(dataset_train, batch_size=64, shuffle=False)
     val_loader = torch.utils.data.DataLoader(dataset_val, batch_size=64, shuffle=False)
 
-    FFclf = classifier(encoded_states_train.shape[1], len(np.unique(labels_train)))
+    nclasses = len(np.unique(np.concatenate((labels_train, labels_val))))
+
+    FFclf = classifier(encoded_states_train.shape[1], nclasses, save_dir=model_name+'_FFNN')
 
     if os.path.exists(os.path.join(FFclf.save_dir, 'best.pth')):
         print ('Loading FFNN classifier from {}'.format(os.path.join(FFclf.save_dir, 'best.pth')))

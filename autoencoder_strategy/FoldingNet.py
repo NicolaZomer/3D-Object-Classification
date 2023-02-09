@@ -5,6 +5,9 @@ import torch.nn as nn
 import numpy as np
 import itertools
 
+import sys
+sys.path.append('../')
+sys.path.append('../autoencoder_strategy')
 from ch_loss import ChamferLoss
 
 class Encoder(nn.Module):
