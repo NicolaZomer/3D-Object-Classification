@@ -51,7 +51,7 @@ Another approach is to use the voxel representation of the 3D models. We use the
 All results are shown in the following table:
 
 <p align="center">
-  <img src="imgs/results/supervised.png" width="500" title="results">
+  <img src="imgs/results/supervised.png" width="450" title="results">
 </p>
 
 ### 3. Autoencoder reconstruction
@@ -74,7 +74,7 @@ The voxel-based autoencoder is a simple 3D CNN, with the same architecture of th
 The results of the autoencoder are shown in the following table:
 
 <p align="center">
-  <img src="imgs/results/unsupervised.png" width="700" title="results">
+  <img src="imgs/results/unsupervised.png" width="750" title="results">
 </p>
 
 
