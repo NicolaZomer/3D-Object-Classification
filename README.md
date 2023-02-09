@@ -22,6 +22,13 @@ python3.9 off2binvox.py
 ```
 Note that the binary file binvox in the binvox_utils folder is compiled for OSX, if you are using a different OS you need to compile it from the source code, available [here](https://www.patrickmin.com/binvox/).
 
+### Pipeline
+A generic example of the pipeline is shown below:
+
+<p align="center">
+  <img src="imgs/nets/pipeline.png" width="1000" title="Task">
+>
+
 ## Architectures
 We test two main architectures for 3D object classification: one based on PointCloud data and one based on Voxel data.
 Moreover, we test a further approach, based on autoencoder reconstruction of the input point cloud.
@@ -33,10 +40,6 @@ The architecture of PointNet is shown below:
   <img src="imgs/nets/pnet.png" width="1000" title="PointNet">
 </p>
 
-#### Test
-| Accuracy | Precision | Recall | F1 |
-| --- | --- | --- | --- |
-| 0.81  |  0.71|   0.71  |  0.70 | 
 
 ### 2. VoxelNet
 Another approach is to use the voxel representation of the 3D models. We use the binvox conversion to convert the .off files into .binvox files. The architecture of VoxelNet is based on convolutional layers, as shown below:
@@ -45,20 +48,17 @@ Another approach is to use the voxel representation of the 3D models. We use the
 </p>
 
 
-#### Test
-| Accuracy | Precision | Recall | F1 |
-| --- | --- | --- | --- |
-| 0.79 | 0.66 | 0.67 | 0.64 |
+All results are shown in the following table:
 
-
-#### VoxelNet with residual connections:
-| Accuracy | Precision | Recall | F1 |
-| --- | --- | --- | --- |
-| 0.83  |  0.72|   0.74  |  0.72 | 
-
+<p align="center">
+  <img src="imgs/results/supervised.png" width="700" title="results">
+</p>
 
 ### 3. Autoencoder reconstruction
-We train an autoencoder to reconstruct the input point cloud. The architecture of the autoencoder is inspired from Folding Net [6]. The codewords are used as features for the classification task, which can be performed using a simple MLP or SVM.
+We train an autoencoder to reconstruct both an input point cloud or a voxel grid.
+
+#### 3.1. Point cloud autoencoder
+The architecture of the autoencoder is inspired from Folding Net [6]. The codewords are used as features for the classification task, which can be performed using a simple MLP or SVM.
 
 For visualization purposes, we use T-SNE to reduce the dimensionality of the codewords to 2D. The following figure shows the T-SNE visualization of the codewords of the autoencoder trained on the ModelNet40 dataset:
 
@@ -66,18 +66,16 @@ For visualization purposes, we use T-SNE to reduce the dimensionality of the cod
   <img src="imgs/tsne_foldingnet.png" width="400" title="tsne">
 </p>
 
-#### Training
-| Model | Accuracy | Precision | Recall | F1 |
-| --- | --- | --- | --- | --- |
-| SVM |  0.95775  |   0.937213   |   0.956921  |   0.945411 |  
-| FFNN | 0.89975   |  0.8533   |   0.890944   |  0.859089  | 
+#### 3.2. Voxel grid autoencoder
+The voxel-based autoencoder is a simple 3D CNN, with the same architecture of the VoxelNet. The results are way worse than the point cloud autoencoder, probably due to the fact that the voxel grid is not a good representation of the 3D shape.
 
 
-#### Testing
-| Model | Accuracy | Precision | Recall | F1 |
-| --- | --- | --- | --- | --- |
-| SVM |  0.814  |  0.73988  |   0.755867  |  0.742402 | 
-| FFNN | 0.7885  |  0.710157   |  0.737134  |  0.712737 | 
+#### 3.3. Results
+The results of the autoencoder are shown in the following table:
+
+<p align="center">
+  <img src="imgs/results/usupervised.png" width="700" title="results">
+</p>
 
 
 
