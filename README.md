@@ -1,4 +1,15 @@
 # 3D-Object-Classification
+
+Nowadays, the identification and understanding of 3D objects in real-world environments has a wide range of applications, including robotics and human-computer interaction. This is typically addressed using Deep Learning techniques that deal with 3D volumetric data, as they are generally able to outperform standard Machine Learning tools.
+ 
+ 
+In this work, we experiment with several architectures based on Convolutional Neural Networks with the aim of classifying 3D objects. We run our tests on the ModelNet40 dataset, one of the most popular benchmark in the context of 3D object recognition. 
+
+First we compare the effectiveness of Point Clouds and Voxel grids, inspecting pros and cons of these representations. We see how, for instance, the more accurate representation obtained via PC does not lead to better performance when dealing with CNNs, unless you have very large memory capacities. 
+
+Then, we build an Autoencoder in order to retrieve an high-dimensional embedding of the input data. We show that the application of simple ML techniques, such as SVM, on these intermediate representations can lead to state-of-the-art performances and codewords could be used for compression purposes. Finally, we provide a visual representation of the encoded features through t-SNE.
+ 
+ 
  
 ## Dataset 
 We employ the [ModelNet40](https://modelnet.cs.princeton.edu/)[1] dataset for our experiments. The dataset contains 12,311 3D models of 40 categories. The models are represented as point clouds with 3D coordinates and 3D normals.
